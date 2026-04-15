@@ -695,6 +695,49 @@ const ACTIVE_APP_STATUSES = new Set([
 ]);
 
 // ─────────────────────────────────────────────
+// Sample contacts — shown when localStorage is empty so new users
+// can explore the tool before their LinkedIn archive arrives
+// ─────────────────────────────────────────────
+const SAMPLE_CONTACTS = [
+  { name:'Priya Sharma',   company:'Razorpay',    role:'Senior Product Manager',
+    grade:'A', score:92, warmthTier:'close-colleague', status:'Not contacted',
+    gradeReasons:['at target company','PM title','career overlap','messaged 8 times'], msgCount:8,
+    connectedOn:'2022-03-15', _sample:true },
+  { name:'Karan Mehta',    company:'Stripe',      role:'Engineering Manager',
+    grade:'A', score:74, warmthTier:'colleague',       status:'Not contacted',
+    gradeReasons:['at target company','career overlap','connection recency'],          msgCount:3,
+    connectedOn:'2023-01-20', _sample:true },
+  { name:'Ananya Iyer',    company:'Freshworks',  role:'Senior Talent Partner',
+    grade:'A', score:68, warmthTier:'active-contact',  status:'Message sent',
+    gradeReasons:['recruiter at target company','messaged 5 times'],                  msgCount:5,
+    connectedOn:'2022-11-08', _sample:true },
+  { name:'Rohan Gupta',    company:'Atlassian',   role:'Product Lead',
+    grade:'B', score:48, warmthTier:'known',            status:'Not contacted',
+    gradeReasons:['at target company','PM title'],                                    msgCount:1,
+    connectedOn:'2021-06-12', _sample:true },
+  { name:'Sneha Patel',    company:'Chargebee',   role:'Head of Product',
+    grade:'B', score:42, warmthTier:'known',            status:'Replied',
+    gradeReasons:['at target company','senior role'],                                 msgCount:2,
+    connectedOn:'2023-05-30', _sample:true },
+  { name:'Aditya Nair',    company:'Google',      role:'Staff Software Engineer',
+    grade:'B', score:32, warmthTier:'warm-unknown',     status:'Not contacted',
+    gradeReasons:['following their company','connection recency'],                    msgCount:0,
+    connectedOn:'2022-08-19', _sample:true },
+  { name:'Deepika Rao',    company:'Infosys',     role:'HR Manager',
+    grade:'C', score:12, warmthTier:'cold',             status:'Not contacted',
+    gradeReasons:[],                                                                  msgCount:0,
+    connectedOn:'2020-04-05', _sample:true }
+];
+
+function isSampleMode() {
+  return state.contacts.length > 0 && state.contacts.every(c => c._sample);
+}
+
+function clearSampleData() {
+  if (isSampleMode()) state.contacts = [];
+}
+
+// ─────────────────────────────────────────────
 // SECTION 2 · Archive data & state
 // ─────────────────────────────────────────────
 let state = {
@@ -1642,6 +1685,7 @@ async function handleZipFile(file) {
 async function handleSingleFile(type, input) {
   const file = input.files[0];
   if (!file) return;
+  clearSampleData();
   try {
     const text = await file.text();
     const result = processFile(file.name, text);
@@ -2072,8 +2116,20 @@ function renderContactsList() {
     }
   }
 
-  // Import banner
+  // Sample data banner — shown until real data is uploaded
   let html = '';
+  if (isSampleMode()) {
+    html += `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+        padding:12px 16px;margin-bottom:16px;border-radius:var(--radius);
+        background:#fefce8;border:1.5px solid #fde047;color:#713f12;font-size:13px">
+      <span style="font-size:18px">👋</span>
+      <span style="flex:1"><strong>This is sample data</strong> — explore how WarmPath works while you wait for your LinkedIn archive.</span>
+      <button class="btn btn-sm" style="background:#713f12;color:#fff;border:none;white-space:nowrap"
+        onclick="switchTab('setup')">Upload my LinkedIn data →</button>
+    </div>`;
+  }
+
+  // Import banner
   if (importBanner) {
     html += `<div class="banner banner-${importBanner.type||'success'}" style="flex-wrap:wrap;gap:8px">
       <span style="flex:1">${h(importBanner.msg)}</span>
@@ -3553,6 +3609,7 @@ async function processZipFile(file) {
   if (typeof JSZip === 'undefined') {
     throw new Error('JSZip is loading — try again in a moment.');
   }
+  clearSampleData(); // remove sample contacts before loading real data
   const zip = await JSZip.loadAsync(file);
   const results = [];
   const filenames = Object.keys(zip.files).filter(f => !zip.files[f].dir);
@@ -3804,8 +3861,13 @@ function init() {
     showBanner('You opened WarmPath directly. Use launch.command (Mac) or launch.bat (Windows) so your data persists consistently. ↗', 'warn');
   }
 
+  // If no real data yet, inject sample contacts so new users can explore immediately
+  if (state.contacts.length === 0) {
+    state.contacts = SAMPLE_CONTACTS.map(c => ({ ...c }));
+  }
+
   const onboarded = localStorage.getItem(LS.onboarded);
-  if (!onboarded) {
+  if (!onboarded && !isSampleMode()) {
     renderContactsTab();
     showOnboarding(1);
   } else {
