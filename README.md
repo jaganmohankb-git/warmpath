@@ -29,6 +29,7 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 - Generates personalised outreach messages tuned to the relationship warmth (7 tiers from recommender to cold)
 - Works without an AI key using built-in templates; generates AI-powered messages with Anthropic, OpenAI, Ollama, or any custom endpoint
 - One-click LinkedIn Jobs, Indeed, Naukri search pre-filtered to their company
+- 📝 Note field per contact — log feedback, fit signals, or anything they shared
 
 ### Tab 2 — Applications
 - Pipeline board: Applied → Screening → Interviewing → Final → Offer
@@ -39,6 +40,7 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 
 ### Tab 3 — Setup
 - Import LinkedIn archive (zip or individual CSVs)
+- Last imported date shown — nudges you to re-import after 60 days
 - Profile auto-populated from archive
 - Multi-provider AI settings with instructions for each
 - Data management: clear contacts, archive, or everything
@@ -89,7 +91,7 @@ Double-click launch.bat
 
 **Without AI features (limited mode):**
 ```
-Double-click warmpath.html directly
+Double-click index.html directly
 ```
 
 ### Step 3 — Import your archive
@@ -142,7 +144,7 @@ Every contact gets a composite score (0–200+) from 12 signals:
 
 ```
 warmpath/
-├── warmpath.html       # The entire application
+├── index.html          # The entire application
 ├── launch.command      # Mac launcher (double-click to start)
 ├── launch.bat          # Windows launcher
 └── README.md           # This file
@@ -172,9 +174,6 @@ warmpath/
 
 ## Roadmap ideas
 
-- [ ] Feedback received field on contact card (log what contacts said about your fit)
-- [ ] Referral ask template (second message after contact replies)
-- [ ] "Last imported" date with nudge to refresh archive
 - [ ] Delta import (only process new connections since last import)
 - [ ] Mobile layout improvements
 

@@ -7,5 +7,5 @@ echo "  WarmPath starting on http://localhost:$PORT"
 echo "  Keep this window open while using the tool."
 echo "  Press Ctrl+C to stop."
 echo ""
-(sleep 1.2 && open "http://localhost:$PORT/warmpath.html") &
+(sleep 1.2 && open "http://localhost:$PORT/index.html") &
 python3 -m http.server $PORT 2>/dev/null || python -m SimpleHTTPServer $PORT

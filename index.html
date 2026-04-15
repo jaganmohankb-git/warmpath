@@ -162,7 +162,24 @@ body {
 .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
 /* ── Search / filter bar ── */
-.filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.filter-bar { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
+.grade-pill-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.grade-pill-label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--faint); margin-right: 2px; }
+.grade-pill {
+  padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  border: 1.5px solid var(--border2); background: var(--surface); color: var(--muted);
+  cursor: pointer; transition: all 0.12s; white-space: nowrap; line-height: 1.6;
+}
+.grade-pill:hover { border-color: var(--purple); color: var(--purple); background: var(--surface2); }
+.grade-pill.active { border-color: var(--purple); background: var(--purple); color: #fff; }
+.grade-pill.pill-a.active  { background: var(--teal);   border-color: var(--teal); }
+.grade-pill.pill-b.active  { background: var(--amber);  border-color: var(--amber); color: #7a4f00; }
+.grade-pill.pill-c.active  { background: var(--border2);border-color: var(--border2); color: var(--muted); }
+.grade-pill.pill-all.active   { background: var(--surface2); border-color: var(--purple); color: var(--purple); }
+.grade-pill.pill-target.active{ background: var(--teal); border-color: var(--teal); color: #fff; }
+.company-pill-row { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; align-items:center;
+  padding:8px 12px; background:var(--teal-bg); border-radius:var(--radius); border:1px solid #b0e4d4; }
+
 .search-input {
   flex: 1; min-width: 200px;
   border: 1px solid var(--border2);
@@ -194,8 +211,17 @@ body {
   border-radius: var(--radius-lg);
   margin-bottom: 10px;
   overflow: hidden;
+  transition: border-color 0.12s, box-shadow 0.12s;
 }
-.contact-card-header { padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+.contact-card:hover { border-color: var(--border2); box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+.contact-card.drawer-active {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 2px var(--purple-bg);
+}
+.contact-card-header {
+  padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;
+  cursor: pointer; user-select: none;
+}
 .avatar {
   width: 40px; height: 40px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -231,14 +257,52 @@ body {
 }
 .outreach-btn:hover { background: #e4e2f4; }
 
-/* ── Outreach drawer ── */
-.outreach-drawer {
+/* ── Side drawer ── */
+#side-drawer-overlay {
   display: none;
-  border-top: 1px solid var(--border);
-  background: var(--surface2);
-  padding: 16px;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.10);
+  z-index: 199; cursor: pointer;
 }
-.outreach-drawer.open { display: block; }
+#side-drawer-overlay.open { display: block; }
+/* On desktop push-layout, overlay blocks card clicks — hide it, drawer sits beside the list */
+@media (min-width: 960px) {
+  #side-drawer-overlay { display: none !important; }
+}
+#side-drawer {
+  position: fixed;
+  top: 52px; right: 0; bottom: 0;
+  width: 560px; max-width: 92vw;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  z-index: 200;
+  overflow-y: auto;
+  box-shadow: -6px 0 28px rgba(0,0,0,0.09);
+  transform: translateX(100%);
+  transition: transform 0.22s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none;
+}
+#side-drawer.open {
+  transform: translateX(0);
+  pointer-events: all;
+}
+#side-drawer-header {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+#side-drawer-body { padding: 16px; }
+.drawer-close-btn {
+  background: none; border: none;
+  font-size: 17px; color: var(--muted);
+  cursor: pointer; padding: 4px 6px; border-radius: 4px;
+  line-height: 1; flex-shrink: 0;
+}
+.drawer-close-btn:hover { background: var(--surface2); color: var(--text); }
+/* legacy inline drawer — kept hidden */
+.outreach-drawer { display: none !important; }
 .drawer-section-label {
   font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
   color: var(--faint); text-transform: uppercase; margin-bottom: 8px;
@@ -337,6 +401,41 @@ body {
 .feedback-entry { margin-bottom: 10px; }
 .feedback-round { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
 .feedback-notes { font-size: 13px; color: var(--text); }
+
+/* ── Resume modal ── */
+.resume-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  z-index: 250; display: flex; align-items: flex-start; justify-content: center;
+  padding: 24px 16px; overflow-y: auto;
+}
+.resume-modal-card {
+  background: var(--surface); border-radius: var(--radius-lg);
+  width: 100%; max-width: 780px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  padding: 28px 32px;
+}
+.resume-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.resume-toolbar h2 { font-size: 16px; font-weight: 700; margin: 0; flex: 1; }
+/* Resume document styles */
+.resume-doc { font-family: 'Georgia', serif; color: #1a1a1a; line-height: 1.6; }
+.resume-doc .r-name { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 2px; }
+.resume-doc .r-headline { font-size: 14px; color: #444; margin-bottom: 6px; }
+.resume-doc .r-contact { font-size: 12px; color: #666; margin-bottom: 18px; }
+.resume-doc hr.r-divider { border: none; border-top: 2px solid #1a1a1a; margin: 0 0 14px; }
+.resume-doc .r-section-title { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #444; margin: 18px 0 8px; }
+.resume-doc .r-summary { font-size: 14px; margin-bottom: 4px; }
+.resume-doc .r-job { margin-bottom: 14px; }
+.resume-doc .r-job-header { display: flex; justify-content: space-between; align-items: baseline; }
+.resume-doc .r-job-title { font-size: 14px; font-weight: 700; }
+.resume-doc .r-job-dates { font-size: 12px; color: #666; white-space: nowrap; }
+.resume-doc .r-job-company { font-size: 13px; color: #444; margin-bottom: 5px; }
+.resume-doc .r-bullets { margin: 0; padding-left: 18px; }
+.resume-doc .r-bullets li { font-size: 13px; margin-bottom: 3px; }
+.resume-doc .r-skills { font-size: 13px; }
+@media print {
+  .resume-modal-overlay, .resume-toolbar { display: none !important; }
+  .resume-print-target { display: block !important; }
+}
 
 /* ── HR Templates ── */
 .hr-templates { margin-top: 32px; }
@@ -453,6 +552,22 @@ select option { background: var(--surface); }
   .topnav { padding: 0 12px; }
   .tab-panel { padding: 16px 12px 48px; }
 }
+#tab-contacts {
+  transition: padding-right 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+@media (min-width: 960px) {
+  body.side-drawer-open #tab-contacts {
+    max-width: none;
+    padding-right: 584px;  /* 560px drawer + 24px gap */
+    transition: padding-right 0.22s cubic-bezier(0.4,0,0.2,1);
+  }
+}
+/* Sub-tab nav for Setup */
+.sub-tab-nav { display:flex; gap:2px; margin-bottom:20px; border-bottom:2px solid var(--border); }
+.sub-tab-btn { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px;
+  padding:8px 16px; font-size:14px; color:var(--muted); cursor:pointer; font-weight:500; }
+.sub-tab-btn:hover { color:var(--text); }
+.sub-tab-btn.active { color:var(--purple); border-bottom-color:var(--purple); font-weight:600; }
 </style>
 </head>
 <body>
@@ -463,18 +578,28 @@ select option { background: var(--surface); }
 <!-- Grade reviewer modal -->
 <div id="grade-review-modal" class="modal-overlay" style="display:none"></div>
 
+<!-- Contact side drawer -->
+<div id="side-drawer-overlay" onclick="closeSideDrawer()"></div>
+<div id="side-drawer">
+  <div id="side-drawer-header"></div>
+  <div id="side-drawer-body"></div>
+</div>
+
 <!-- App form modal -->
 <div id="app-modal" class="modal-overlay" style="display:none"></div>
 
 <!-- Feedback modal -->
 <div id="feedback-modal" class="modal-overlay" style="display:none"></div>
 
+<!-- Resume modal -->
+<div id="resume-modal" class="resume-modal-overlay" style="display:none" onclick="if(event.target===this)closeResumeModal()"></div>
+
 <!-- Top nav -->
 <nav class="topnav">
   <div class="nav-brand">WarmPath</div>
   <div class="nav-tabs">
     <button class="nav-tab active" data-tab="contacts" onclick="switchTab('contacts')">
-      Contacts (<span id="nav-a-count">0</span> A)
+      Network (<span id="nav-a-count">0</span> A)
     </button>
     <button class="nav-tab" data-tab="applications" onclick="switchTab('applications')">
       Applications (<span id="nav-app-count">0</span>)
@@ -542,7 +667,9 @@ const LS = {
   skills:'wp_skills', onboarded:'wp_onboarded',
   apikey:'wp_apikey', targets:'wp_targets',
   ai_provider:'wp_ai_provider', ai_model:'wp_ai_model', ai_baseurl:'wp_ai_baseurl',
-  job_location:'wp_job_location', last_import:'wp_last_import'
+  job_location:'wp_job_location', last_import:'wp_last_import',
+  resume:'wp_resume', custom_targets:'wp_custom_targets',
+  company_intel:'wp_company_intel'
 };
 
 // AI provider defaults
@@ -580,11 +707,15 @@ let state = {
   COMPANY_FOLLOWS: {},
   ENDORSERS: [],
   SKILLS: [],
-  TARGET_COS: [...DEFAULT_TARGET_COS]
+  TARGET_COS: [...DEFAULT_TARGET_COS],
+  COMPANY_INTEL: {}  // shared cache: normalised-company-name → intel object
 };
 
 let activeTab = 'contacts';
-let contactFilters = { grade:'', status:'', relationship:'', search:'' };
+let setupSubTab = 'import';
+let contactFilters = { grade:'AB', status:'', relationship:'', search:'', targetOnly:false, company:'' };
+let contactPage = 1;
+const CONTACTS_PER_PAGE = 50;
 let expandedCards = new Set();
 let importBanner = null;
 let onboardStep = 1;
@@ -722,11 +853,11 @@ function renderAppCard(app, idx) {
         <button class="btn btn-red btn-sm" onclick="removeApp(${idx})">Remove</button>
         ${app.company ? `<button class="btn btn-ghost btn-sm" onclick="loadAppCompanyIntel(${idx})" id="app-intel-btn-${idx}">Load intel</button>` : ''}
       </div>
-      ${app.companyIntel ? `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-        ${app.companyIntel.glassdoorRating ? `<span class="intel-chip">Glassdoor ${app.companyIntel.glassdoorRating} ★</span>` : ''}
-        ${app.companyIntel.salaryRange     ? `<span class="intel-chip">${h(app.companyIntel.salaryRange)}</span>` : ''}
-        ${app.companyIntel.reviewSentiment ? `<span class="intel-chip" title="${h(app.companyIntel.reviewSentiment)}">Reviews ℹ</span>` : ''}
-      </div>` : ''}
+      ${(() => { const ci = app.company ? state.COMPANY_INTEL[coKey(app.company)] : null; return ci ? `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        ${ci.glassdoorRating ? `<span class="intel-chip">Glassdoor ${ci.glassdoorRating} ★</span>` : ''}
+        ${ci.salaryRange     ? `<span class="intel-chip">${h(ci.salaryRange)}</span>` : ''}
+        ${ci.reviewSentiment ? `<span class="intel-chip" title="${h(ci.reviewSentiment)}">Reviews ℹ</span>` : ''}
+      </div>` : ''; })()}
     </div>
     ${feedbackHtml ? `<div class="feedback-log">${feedbackHtml}</div>` : ''}
   </div>`;
@@ -887,43 +1018,49 @@ function saveFeedback(idx) {
 
 async function loadAppCompanyIntel(idx) {
   const app = state.applications[idx];
-  if (!app) return;
-  const apiKey = getApiKey();
-  if (!apiKey) { alert('Add your Anthropic API key in Setup first.'); return; }
+  if (!app || !app.company) return;
+  const cfg = getAIConfig();
+  if (!cfg.apiKey && cfg.provider !== 'ollama') {
+    alert('Add an AI provider in Setup first.');
+    return;
+  }
+
+  const key = coKey(app.company);
+
+  // If cached and less than 7 days old, just re-render (no fetch needed)
+  const cached = state.COMPANY_INTEL[key];
+  if (cached?.fetchedAt) {
+    const ageDays = (Date.now() - new Date(cached.fetchedAt)) / 86400000;
+    if (ageDays < 7) { renderApplicationsTab(); return; }
+  }
+
   const btn = document.getElementById(`app-intel-btn-${idx}`);
   if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
 
-  const prompt = `Search for current information about "${app.company}" as a place to work.
-Return ONLY a JSON object with these exact fields:
-{
-  "glassdoorRating": number or null,
-  "salaryRange": "string like ₹35–55L for Staff PM" or null,
-  "reviewSentiment": "1-sentence summary of employee sentiment" or null
-}
-No other text.`;
+  const prompt = `What do you know about "${app.company}" as a place to work?
+Return ONLY a JSON object:
+{"glassdoorRating":number_or_null,"salaryRange":"e.g. ₹35-55L for Staff PM or null","reviewSentiment":"one sentence or null"}
+No other text. Use null for unknown fields.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 200,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await res.json();
-    const text = data.content?.map(b => b.text || '').join('') || '{}';
-    const intel = JSON.parse(text.replace(/```json|```/g, '').trim());
+    let text = '';
+    try {
+      text = await callAI(prompt, 300, cfg.provider === 'anthropic');
+    } catch(e2) {
+      text = await callAI(prompt, 300, false);
+    }
+    const match = text.match(/\{[\s\S]*\}/);
+    const intel = match ? JSON.parse(match[0]) : {};
     intel.fetchedAt = new Date().toISOString();
-    state.applications[idx].companyIntel = intel;
-    saveApplications();
+
+    // Write to shared cache
+    state.COMPANY_INTEL[key] = intel;
+    saveCompanyIntel();
+
+    // Refresh contacts at this company + all app cards
+    state.contacts.forEach((ct, i) => {
+      if (coKey(ct.company) === key) renderDrawerContent(i);
+    });
     renderApplicationsTab();
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Load intel'; }
@@ -1026,14 +1163,32 @@ const ARCHIVE_FILES = [
   { key:'company_follows',name:'Company_Follows.csv',            desc:'Optional signal.',                             required:false }
 ];
 
-let fileStatuses = {}; // key → 'loaded' | 'failed'
+let fileStatuses = {}; // key → 'loaded' | 'failed'  (set during current session import)
+
+// Derive file status from actual state data so status persists across page reloads
+function getFileStatus(key) {
+  // If a status was set this session (import or failure), trust it
+  if (fileStatuses[key]) return fileStatuses[key];
+  // Otherwise derive from state data
+  switch (key) {
+    case 'connections':    return state.contacts.length > 0           ? 'loaded' : 'pending';
+    case 'messages':       return Object.keys(state.MSG_LOOKUP).length > 0 ? 'loaded' : 'pending';
+    case 'recommendations':return state.RECOMMENDERS.length > 0       ? 'loaded' : 'pending';
+    case 'positions':      return state.POSITIONS_DATA.length > 0     ? 'loaded' : 'pending';
+    case 'profile':        return state.profile.name                  ? 'loaded' : 'pending';
+    case 'endorsements':   return state.ENDORSERS.length > 0          ? 'loaded' : 'pending';
+    case 'skills':         return state.SKILLS.length > 0             ? 'loaded' : 'pending';
+    case 'company_follows':return Object.keys(state.COMPANY_FOLLOWS).length > 0 ? 'loaded' : 'pending';
+    default: return 'pending';
+  }
+}
 
 function renderSetupTab() {
   const el = document.getElementById('tab-setup');
   const p  = state.profile;
   const apiKey = getApiKey();
 
-  // Scoring preview
+  // Scoring preview (used in import sub-tab)
   const aCount = state.contacts.filter(c => c.grade === 'A').length;
   const bCount = state.contacts.filter(c => c.grade === 'B').length;
   const top5   = [...state.contacts].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,5);
@@ -1061,6 +1216,13 @@ function renderSetupTab() {
     </div>` : '';
 
   el.innerHTML = `
+    <div class="sub-tab-nav">
+      <button class="sub-tab-btn ${setupSubTab==='import'?'active':''}" onclick="switchSetupTab('import')">Import &amp; Data</button>
+      <button class="sub-tab-btn ${setupSubTab==='profile'?'active':''}" onclick="switchSetupTab('profile')">Profile</button>
+      <button class="sub-tab-btn ${setupSubTab==='settings'?'active':''}" onclick="switchSetupTab('settings')">Settings</button>
+    </div>
+
+    ${setupSubTab === 'profile' ? `
     <!-- About you -->
     <div class="setup-section">
       <div class="setup-section-title">About you</div>
@@ -1069,14 +1231,32 @@ function renderSetupTab() {
           <input class="form-input" id="sp-name" value="${h(p.name||'')}" placeholder="Full name"></div>
         <div class="form-field"><label class="form-label">LinkedIn headline</label>
           <input class="form-input" id="sp-headline" value="${h(p.headline||'')}" placeholder="e.g. Staff PM · Fintech · Platform"></div>
-        <div class="form-field"><label class="form-label">Current level</label>
+        <div class="form-field"><label class="form-label">Current level / title</label>
           <input class="form-input" id="sp-level" value="${h(p.currentLevel||'')}" placeholder="e.g. Staff PM, Head of Product"></div>
+        <div class="form-field"><label class="form-label">Current company <span style="color:var(--faint)">(excluded from target scoring)</span></label>
+          <input class="form-input" id="sp-currentco" value="${h(p.currentCompany||'')}" placeholder="e.g. Acme Corp"></div>
         <div class="form-field"><label class="form-label">Location</label>
           <input class="form-input" id="sp-location" value="${h(p.location||'')}" placeholder="e.g. Bengaluru"></div>
+        <div class="form-field"><label class="form-label">Company type preference</label>
+          <select class="form-select" id="sp-cotype">
+            <option value=""    ${!p.companyType?'selected':''}>Any</option>
+            <option value="Startup"    ${p.companyType==='Startup'?'selected':''}>Startup (seed–Series B)</option>
+            <option value="Scale-up"   ${p.companyType==='Scale-up'?'selected':''}>Scale-up (Series C+)</option>
+            <option value="Enterprise" ${p.companyType==='Enterprise'?'selected':''}>Enterprise / large co</option>
+            <option value="PE-backed"  ${p.companyType==='PE-backed'?'selected':''}>PE-backed / turnaround</option>
+          </select></div>
         <div class="form-field full"><label class="form-label">Background summary <span style="color:var(--faint)">(used in outreach messages)</span></label>
           <textarea class="form-textarea" id="sp-bg" placeholder="2–3 sentences about your experience and what you're looking for…">${h(p.bg||'')}</textarea></div>
         <div class="form-field full"><label class="form-label">Target role type</label>
           <input class="form-input" id="sp-target" value="${h(p.target||'')}" placeholder="e.g. Staff/Principal PM at a B2B SaaS or developer tools company"></div>
+        <div class="form-field full"><label class="form-label">Why you're looking <span style="color:var(--faint)">(optional — tunes message tone)</span></label>
+          <input class="form-input" id="sp-why" value="${h(p.whyLooking||'')}" placeholder="e.g. Seeking growth into VP, company pivoting away from product, exploring after layoff"></div>
+        <div class="form-field full">
+          <label class="form-label">Your resume <span style="color:var(--faint)">(paste plain text — used to tailor resume for each role)</span></label>
+          <textarea class="form-textarea" id="sp-resume" style="min-height:140px;font-size:12px;font-family:monospace"
+            placeholder="Paste your current resume here as plain text. LinkedIn: Profile → More → Save to PDF, then copy-paste the text.">${h(localStorage.getItem(LS.resume)||'')}</textarea>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Stored locally. Used only when you click "Tailor resume" on a contact. Never sent anywhere except your chosen AI provider.</div>
+        </div>
       </div>
       <div style="margin-top:14px">
         <button class="btn btn-primary" onclick="saveProfileForm()">Save profile</button>
@@ -1084,6 +1264,35 @@ function renderSetupTab() {
       </div>
     </div>
 
+    <!-- Target companies -->
+    <div class="setup-section">
+      <div class="setup-section-title">Target companies <span style="font-weight:400;font-size:13px;color:var(--muted)">(drives scoring — contacts here rank higher)</span></div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:6px">
+        Your active target list: <strong>${state.TARGET_COS.filter(t => !DEFAULT_TARGET_COS.includes(t)).length} custom</strong> + ${DEFAULT_TARGET_COS.length} defaults.
+        Contacts at these companies score +40 pts. Your current company is excluded automatically.
+      </div>
+      <details style="margin-bottom:12px">
+        <summary style="font-size:12px;color:var(--purple);cursor:pointer;user-select:none">View ${DEFAULT_TARGET_COS.length} built-in default companies ▸</summary>
+        <div style="margin-top:8px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border);font-size:12px;color:var(--muted);line-height:2">
+          ${DEFAULT_TARGET_COS.map(t => `<span style="display:inline-block;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:1px 9px;margin:2px">${h(t)}</span>`).join(' ')}
+          <div style="margin-top:8px;font-size:11px;color:var(--faint)">These are pre-loaded. Add your own below to supplement them. Remove a default by adding it to a future "exclude" list — not yet supported, but planned.</div>
+        </div>
+      </details>
+      <div class="form-field full" style="margin-bottom:12px">
+        <label class="form-label">Your custom target companies <span style="color:var(--faint)">(one per line — company name or partial match)</span></label>
+        <textarea class="form-textarea" id="sp-custom-targets" style="min-height:100px;font-size:13px"
+          placeholder="Flipkart&#10;Meesho&#10;PhonePe&#10;CRED&#10;…">${h(getCustomTargets().join('\n'))}</textarea>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="saveCustomTargetsForm()">Save targets &amp; re-score</button>
+        <button class="btn btn-secondary btn-sm" onclick="suggestTargetCompanies()" id="suggest-co-btn">✨ Suggest companies for me</button>
+        <span id="suggest-co-status" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+      <div id="suggest-co-results" style="margin-top:14px;display:none"></div>
+    </div>
+    ` : ''}
+
+    ${setupSubTab === 'settings' ? `
     <!-- AI Settings -->
     <div class="setup-section">
       <div class="setup-section-title">AI settings <span style="font-weight:400;font-size:13px;color:var(--muted)">(optional — enables message generation &amp; company intel)</span></div>
@@ -1136,6 +1345,20 @@ function renderSetupTab() {
       </div>
     </div>
 
+    <!-- Launcher instructions -->
+    <div class="setup-section">
+      <div class="setup-section-title">Running WarmPath with AI features</div>
+      <div class="step-instructions">
+        AI message generation requires a local server to avoid CORS errors.<br><br>
+        <strong>Mac:</strong> Double-click <code>launch.command</code> in the WarmPath folder.<br>
+        On first run macOS may block it — open Terminal, type <code>chmod +x </code> (with a space), drag the file in, press Enter.<br><br>
+        <strong>Windows:</strong> Double-click <code>launch.bat</code><br><br>
+        Then open <a href="http://localhost:8080/warmpath.html" target="_blank" style="color:var(--purple)">http://localhost:8080/warmpath.html</a>
+      </div>
+    </div>
+    ` : ''}
+
+    ${setupSubTab === 'import' ? `
     <!-- Import archive -->
     <div class="setup-section">
       <div class="setup-section-title">Import your LinkedIn archive</div>
@@ -1164,10 +1387,10 @@ function renderSetupTab() {
 
       <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Or upload individual files:</div>
       <div class="file-upload-list">
-        ${ARCHIVE_FILES.map(f => `
+        ${ARCHIVE_FILES.map(f => { const fs = getFileStatus(f.key); return `
           <div class="file-upload-row">
-            <span class="file-status ${fileStatuses[f.key] || 'pending'}" id="fstat-${f.key}">
-              ${fileStatuses[f.key] === 'loaded' ? '✓ Loaded' : fileStatuses[f.key] === 'failed' ? '✗ Failed' : '○ Not uploaded'}
+            <span class="file-status ${fs}" id="fstat-${f.key}">
+              ${fs === 'loaded' ? '✓ Loaded' : fs === 'failed' ? '✗ Failed' : '○ Not uploaded'}
             </span>
             <span class="file-name">${h(f.name)}${f.required ? ' <span style="color:var(--coral)">*</span>' : ''}</span>
             <span class="file-desc">${h(f.desc)}</span>
@@ -1175,7 +1398,7 @@ function renderSetupTab() {
               Upload
               <input type="file" accept=".csv" style="display:none" onchange="handleSingleFile('${f.key}', this)">
             </label>
-          </div>`).join('')}
+          </div>`; }).join('')}
       </div>
 
       <div style="margin-top:10px">
@@ -1211,30 +1434,133 @@ function renderSetupTab() {
         <button class="btn btn-red btn-sm" onclick="clearEverything()">Clear everything &amp; restart</button>
       </div>
     </div>
+    ` : ''}`;
+}
 
-    <!-- Launcher instructions -->
-    <div class="setup-section">
-      <div class="setup-section-title">Running WarmPath with AI features</div>
-      <div class="step-instructions">
-        AI message generation requires a local server to avoid CORS errors.<br><br>
-        <strong>Mac:</strong> Double-click <code>launch.command</code> in the WarmPath folder.<br>
-        On first run macOS may block it — open Terminal, type <code>chmod +x </code> (with a space), drag the file in, press Enter.<br><br>
-        <strong>Windows:</strong> Double-click <code>launch.bat</code><br><br>
-        Then open <a href="http://localhost:8080/warmpath.html" target="_blank" style="color:var(--purple)">http://localhost:8080/warmpath.html</a>
-      </div>
-    </div>`;
+function switchSetupTab(tab) {
+  setupSubTab = tab;
+  renderSetupTab();
 }
 
 function saveProfileForm() {
-  state.profile.name         = document.getElementById('sp-name')?.value?.trim()     || '';
-  state.profile.headline     = document.getElementById('sp-headline')?.value?.trim() || '';
-  state.profile.currentLevel = document.getElementById('sp-level')?.value?.trim()   || '';
-  state.profile.location     = document.getElementById('sp-location')?.value?.trim() || '';
-  state.profile.bg           = document.getElementById('sp-bg')?.value?.trim()       || '';
-  state.profile.target       = document.getElementById('sp-target')?.value?.trim()  || '';
+  state.profile.name          = document.getElementById('sp-name')?.value?.trim()      || '';
+  state.profile.headline      = document.getElementById('sp-headline')?.value?.trim()  || '';
+  state.profile.currentLevel  = document.getElementById('sp-level')?.value?.trim()     || '';
+  state.profile.currentCompany= document.getElementById('sp-currentco')?.value?.trim() || '';
+  state.profile.location      = document.getElementById('sp-location')?.value?.trim()  || '';
+  state.profile.companyType   = document.getElementById('sp-cotype')?.value           || '';
+  state.profile.bg            = document.getElementById('sp-bg')?.value?.trim()        || '';
+  state.profile.target        = document.getElementById('sp-target')?.value?.trim()    || '';
+  state.profile.whyLooking    = document.getElementById('sp-why')?.value?.trim()       || '';
+  // Resume stored separately (can be large)
+  const resumeText = document.getElementById('sp-resume')?.value?.trim() || '';
+  if (resumeText) localStorage.setItem(LS.resume, resumeText);
+  else localStorage.removeItem(LS.resume);
   saveProfile();
   const el = document.getElementById('profile-save-status');
   if (el) { el.textContent = 'Saved ✓'; setTimeout(() => { el.textContent = ''; }, 2000); }
+}
+
+function saveCustomTargetsForm() {
+  const raw = document.getElementById('sp-custom-targets')?.value || '';
+  const arr = raw.split(/[\n,]/).map(t => t.trim().toLowerCase()).filter(Boolean);
+  saveCustomTargets(arr);
+  reScoreAll();
+  updateNavCounts();
+  const el = document.getElementById('suggest-co-status');
+  if (el) { el.style.color = 'var(--teal)'; el.textContent = `Saved ${arr.length} custom targets — contacts re-scored ✓`; }
+  renderSetupTab();
+  if (activeTab === 'contacts') renderContactsList();
+}
+
+async function suggestTargetCompanies() {
+  const cfg = getAIConfig();
+  const statusEl = document.getElementById('suggest-co-status');
+  const resultsEl = document.getElementById('suggest-co-results');
+  const btn = document.getElementById('suggest-co-btn');
+  if (!cfg.apiKey && cfg.provider !== 'ollama') {
+    if (statusEl) statusEl.textContent = 'Add an AI key in AI Settings to use this feature.';
+    return;
+  }
+  const p = state.profile;
+  if (!p.target && !p.bg && !p.currentLevel) {
+    if (statusEl) statusEl.textContent = 'Fill in your profile (target role, background) first.';
+    return;
+  }
+  if (btn) btn.disabled = true;
+  if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Thinking…'; }
+  if (resultsEl) resultsEl.style.display = 'none';
+
+  const prompt = `You are helping a senior professional identify the best target companies for their job search.
+
+THEIR PROFILE:
+Role/level: ${p.currentLevel || ''}
+Target: ${p.target || ''}
+Background: ${p.bg || ''}
+Company type preference: ${p.companyType || 'any'}
+Location: ${p.location || 'India'}
+Why looking: ${p.whyLooking || ''}
+Current company (exclude this): ${p.currentCompany || ''}
+
+TASK: Suggest 15 specific companies that are an excellent fit for this person's job search.
+Focus on companies that:
+1. Hire for roles like "${p.target || p.currentLevel || 'senior product manager'}"
+2. Match the company type preference: ${p.companyType || 'any size'}
+3. Are realistic targets (not too large/small for their level)
+4. Are in ${p.location || 'India'} or hire remotely
+
+Return ONLY a JSON array of company names (no descriptions, no markdown):
+["Company A", "Company B", "Company C", ...]`;
+
+  try {
+    const raw = await callAI(prompt, 600);
+    const match = raw.match(/\[[\s\S]*?\]/);
+    if (!match) throw new Error('No array found in response');
+    const suggestions = JSON.parse(match[0]).filter(Boolean);
+    const existing = [...state.TARGET_COS];
+    if (btn) btn.disabled = false;
+    if (statusEl) { statusEl.style.color = 'var(--teal)'; statusEl.textContent = `${suggestions.length} suggestions ready`; }
+    if (resultsEl) {
+      resultsEl.style.display = 'block';
+      resultsEl.innerHTML = `
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Select companies to add to your target list:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+          ${suggestions.map((co, i) => {
+            const already = existing.some(t => co.toLowerCase().includes(t) || t.includes(co.toLowerCase()));
+            return `<label style="display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:4px 10px;
+              border:1px solid var(--border);border-radius:20px;cursor:pointer;background:var(--surface2)">
+              <input type="checkbox" class="co-suggestion-cb" value="${h(co)}" ${already?'':'checked'}>
+              ${h(co)}${already?' <span style="color:var(--teal);font-size:11px">✓ in list</span>':''}
+            </label>`;
+          }).join('')}
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="addSuggestedCompanies()">Add selected to my list</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('suggest-co-results').style.display='none'">Dismiss</button>
+        </div>`;
+    }
+  } catch(e) {
+    if (btn) btn.disabled = false;
+    if (statusEl) { statusEl.style.color = 'var(--red)'; statusEl.textContent = 'Error: ' + e.message.slice(0, 60); }
+  }
+}
+
+function addSuggestedCompanies() {
+  const cbs = document.querySelectorAll('.co-suggestion-cb:checked');
+  const newCos = Array.from(cbs).map(cb => cb.value.toLowerCase().trim()).filter(Boolean);
+  if (!newCos.length) return;
+  const existing = getCustomTargets();
+  const merged = [...new Set([...existing, ...newCos])];
+  saveCustomTargets(merged);
+  // Update textarea
+  const ta = document.getElementById('sp-custom-targets');
+  if (ta) ta.value = merged.join('\n');
+  reScoreAll();
+  updateNavCounts();
+  const statusEl = document.getElementById('suggest-co-status');
+  if (statusEl) { statusEl.style.color = 'var(--teal)'; statusEl.textContent = `Added ${newCos.length} companies — contacts re-scored ✓`; }
+  document.getElementById('suggest-co-results').style.display = 'none';
+  if (activeTab === 'contacts') renderContactsList();
 }
 
 function saveAISettings() {
@@ -1298,10 +1624,14 @@ async function handleZipFile(file) {
     const aCount = state.contacts.filter(c => c.grade==='A').length;
     const bCount = state.contacts.filter(c => c.grade==='B').length;
     const msg = `${state.contacts.length} contacts loaded — ${aCount} Grade A · ${bCount} Grade B${merged ? ` · ${merged} merged` : ''}`;
-    if (statusEl) statusEl.innerHTML = `<div class="banner banner-success">${h(msg)}</div>`;
     localStorage.setItem(LS.onboarded, '1');
     localStorage.setItem(LS.last_import, new Date().toISOString().slice(0,10));
     importBanner = { msg, type: 'success' };
+    // Offer memory cleanup if message data was loaded (it can be 3-5MB)
+    const msgCount = Object.keys(state.MSG_LOOKUP).length;
+    if (msgCount > 0) {
+      importBanner.memOffer = true;
+    }
     renderSetupTab();
     if (activeTab === 'contacts') { renderContactsTab(); } else { renderContactsList(); }
   } catch(e) {
@@ -1352,6 +1682,17 @@ function clearArchiveData() {
   reScoreAll();
   updateNavCounts();
   renderSetupTab();
+}
+
+function freeMessageMemory() {
+  // Clears raw message data only — grades and scores already baked into contacts
+  const msgCount = Object.keys(state.MSG_LOOKUP).length;
+  state.MSG_LOOKUP = {};
+  try { localStorage.removeItem(LS.msg); } catch(e) {}
+  importBanner = { msg: `Memory freed — ${msgCount} message records cleared. Grades and scores are unchanged.`, type: 'success' };
+  renderContactsList();
+  // Update the scoring signal display in Setup
+  if (activeTab === 'setup') renderSetupTab();
 }
 
 function clearEverything() {
@@ -1408,17 +1749,17 @@ function showOnboarding(step) {
       <input type="file" id="ob-zip-input" accept=".zip" style="display:none" onchange="handleObZipInput(this)">
       <div id="ob-zip-status"></div>
       <div class="file-upload-list" style="margin-top:12px">
-        ${ARCHIVE_FILES.map(f => `
+        ${ARCHIVE_FILES.map(f => { const fs = getFileStatus(f.key); return `
           <div class="file-upload-row" style="padding:8px 12px">
-            <span class="file-status ${fileStatuses[f.key] || 'pending'}" id="ob-fstat-${f.key}" style="width:70px">
-              ${fileStatuses[f.key]==='loaded'?'✓':fileStatuses[f.key]==='failed'?'✗':'○'}
+            <span class="file-status ${fs}" id="ob-fstat-${f.key}" style="width:70px">
+              ${fs === 'loaded' ? '✓' : fs === 'failed' ? '✗' : '○'}
             </span>
             <span class="file-name" style="font-size:12px">${h(f.name)}</span>
             <label class="btn btn-secondary btn-sm" style="margin-left:auto">
               Upload
               <input type="file" accept=".csv" style="display:none" onchange="handleObSingleFile('${f.key}', this)">
             </label>
-          </div>`).join('')}
+          </div>`; }).join('')}
       </div>
       <div class="onboarding-actions">
         <button class="btn btn-ghost" onclick="showOnboarding(1)">← Back</button>
@@ -1439,8 +1780,13 @@ function showOnboarding(step) {
           <textarea class="form-textarea" id="ob-bg" placeholder="2–3 sentences about your experience…">${h(p.bg||'')}</textarea></div>
         <div class="form-field full"><label class="form-label">Target role type</label>
           <input class="form-input" id="ob-target" value="${h(p.target||'')}" placeholder="e.g. Staff PM at B2B SaaS"></div>
-        <div class="form-field full"><label class="form-label">Anthropic API key <span style="color:var(--faint)">(for AI message generation)</span></label>
-          <input class="form-input" type="password" id="ob-apikey" value="${h(getApiKey())}" placeholder="sk-ant-…"></div>
+        <div class="form-field full">
+          <label class="form-label">Anthropic API key <span style="color:var(--faint)">(optional — for AI-generated messages)</span></label>
+          <input class="form-input" type="password" id="ob-apikey" value="${h(getApiKey())}" placeholder="sk-ant-…">
+          <div style="font-size:12px;color:var(--muted);margin-top:5px">
+            Get a key at <a href="https://console.anthropic.com/" target="_blank" rel="noopener" style="color:var(--purple)">console.anthropic.com</a> → API Keys → Create key. ~$0.003/message. Without a key, built-in templates are used instead.
+          </div>
+        </div>
       </div>
       <div class="onboarding-actions">
         <button class="btn btn-ghost" onclick="showOnboarding(2)">← Back</button>
@@ -1473,8 +1819,8 @@ function showOnboarding(step) {
   overlay.style.display = 'flex';
 }
 
-function skipOnboarding()   { localStorage.setItem(LS.onboarded,'1'); hideOnboarding(); }
-function finishOnboarding() { localStorage.setItem(LS.onboarded,'1'); hideOnboarding(); }
+function skipOnboarding()   { localStorage.setItem(LS.onboarded,'1'); hideOnboarding(); renderContactsTab(); updateNavCounts(); }
+function finishOnboarding() { localStorage.setItem(LS.onboarded,'1'); hideOnboarding(); renderContactsTab(); updateNavCounts(); }
 function hideOnboarding()   { document.getElementById('onboarding-overlay').style.display='none'; }
 
 function saveOnboardingProfile() {
@@ -1546,8 +1892,20 @@ async function handleObSingleFile(type, input) {
 // ─────────────────────────────────────────────
 function getFilteredContacts() {
   let list = [...state.contacts];
-  const { grade, status, relationship, search } = contactFilters;
-  if (grade)        list = list.filter(c => c.grade === grade);
+  const { grade, status, relationship, search, targetOnly, company } = contactFilters;
+  if (grade === 'AB') list = list.filter(c => c.grade === 'A' || c.grade === 'B');
+  else if (grade)     list = list.filter(c => c.grade === grade);
+  // Target company filter — restrict to contacts whose company is in TARGET_COS
+  if (targetOnly || company) {
+    list = list.filter(c => {
+      const co = (c.company || '').toLowerCase().trim();
+      return co && state.TARGET_COS.some(t => co.includes(t));
+    });
+  }
+  // Company sub-filter — drill down to a specific company
+  if (company) {
+    list = list.filter(c => (c.company || '').toLowerCase().includes(company));
+  }
   if (status)       list = list.filter(c => c.status === status);
   if (relationship) list = list.filter(c => (c.relationship || '').toLowerCase().includes(relationship.toLowerCase()));
   if (search) {
@@ -1558,7 +1916,13 @@ function getFilteredContacts() {
       (c.role    || '').toLowerCase().includes(q)
     );
   }
-  list.sort((a, b) => (b.score || 0) - (a.score || 0));
+  const gradeOrder = { A: 0, B: 1, C: 2 };
+  list.sort((a, b) => {
+    const ga = gradeOrder[a.grade] ?? 2;
+    const gb = gradeOrder[b.grade] ?? 2;
+    if (ga !== gb) return ga - gb;
+    return (b.score || 0) - (a.score || 0);
+  });
   return list;
 }
 
@@ -1567,41 +1931,49 @@ function renderContactsTab() {
   const contacts = state.contacts;
   const relationships = [...new Set(contacts.map(c => c.relationship).filter(Boolean))].slice(0, 12);
 
-  const totalContacts = contacts.length;
   const gradeA        = contacts.filter(c => c.grade === 'A').length;
-  const activeConvos  = contacts.filter(c => c.status === 'Replied' || c.status === 'Call done').length;
-  const referrals     = contacts.filter(c => c.status === 'Referral given').length;
-
-  const filtersActive = contactFilters.grade || contactFilters.status || contactFilters.relationship || contactFilters.search;
+  const gradeB        = contacts.filter(c => c.grade === 'B').length;
+  const atTarget      = contacts.filter(c => {
+    const co = (c.company || '').toLowerCase();
+    return co && state.TARGET_COS.some(t => co.includes(t));
+  }).length;
+  const notYetContacted = contacts.filter(c =>
+    (c.grade === 'A' || c.grade === 'B') &&
+    (!c.status || c.status === 'Not contacted')
+  ).length;
 
   el.innerHTML = `
     <div class="filter-bar" id="contacts-filter-bar">
       <input class="search-input" id="contact-search" type="text"
         placeholder="Search by name, company, role…"
         value="${h(contactFilters.search)}"
-        oninput="contactFilters.search=this.value; renderContactsList()">
-      <select class="filter-select" id="filter-grade" onchange="contactFilters.grade=this.value; renderContactsList()">
-        <option value="">All grades</option>
-        <option value="A" ${contactFilters.grade==='A'?'selected':''}>Grade A</option>
-        <option value="B" ${contactFilters.grade==='B'?'selected':''}>Grade B</option>
-        <option value="C" ${contactFilters.grade==='C'?'selected':''}>Grade C</option>
-      </select>
-      <select class="filter-select" id="filter-status" onchange="contactFilters.status=this.value; renderContactsList()">
+        oninput="contactFilters.search=this.value; contactPage=1; renderContactsList()">
+      <select class="filter-select" id="filter-status" onchange="contactFilters.status=this.value; contactPage=1; renderContactsList()">
         <option value="">All statuses</option>
         ${CONTACT_STATUSES.map(s => `<option value="${h(s)}" ${contactFilters.status===s?'selected':''}>${h(s)}</option>`).join('')}
       </select>
-      <select class="filter-select" id="filter-rel" onchange="contactFilters.relationship=this.value; renderContactsList()">
+      <select class="filter-select" id="filter-rel" onchange="contactFilters.relationship=this.value; contactPage=1; renderContactsList()">
         <option value="">All relationships</option>
         ${relationships.map(r => `<option value="${h(r)}" ${contactFilters.relationship===r?'selected':''}>${h(r)}</option>`).join('')}
       </select>
-      ${filtersActive ? `<button class="btn btn-ghost btn-sm" onclick="clearContactFilters()">✕ Clear filters</button>` : ''}
       <span class="filter-count" id="filter-count"></span>
     </div>
+    <div class="grade-pill-row" id="grade-pill-row">
+      <span class="grade-pill-label">Show:</span>
+      <button class="grade-pill pill-ab ${contactFilters.grade==='AB'?'active':''}"  onclick="setGradeFilter('AB')">Focus — Warm + Lukewarm</button>
+      <button class="grade-pill pill-a  ${contactFilters.grade==='A' ?'active':''}"  onclick="setGradeFilter('A')">🔥 Warm only (A)</button>
+      <button class="grade-pill pill-b  ${contactFilters.grade==='B' ?'active':''}"  onclick="setGradeFilter('B')">★ Lukewarm only (B)</button>
+      <button class="grade-pill pill-c  ${contactFilters.grade==='C' ?'active':''}"  onclick="setGradeFilter('C')">❄ Cold (C)</button>
+      <button class="grade-pill pill-all ${contactFilters.grade==='' ?'active':''}"  onclick="setGradeFilter('')">All contacts</button>
+      <span style="width:1px;height:20px;background:var(--border2);margin:0 4px;flex-shrink:0"></span>
+      <button class="grade-pill pill-target ${contactFilters.targetOnly?'active':''}" onclick="setTargetFilter()">🎯 Target cos</button>
+    </div>
+    <div class="company-pill-row" id="company-pill-row" style="display:none"></div>
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-num">${totalContacts}</div><div class="stat-label">Total contacts</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${gradeA}</div><div class="stat-label">Grade A (warm)</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--purple)">${activeConvos}</div><div class="stat-label">Active conversations</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--green)">${referrals}</div><div class="stat-label">Referrals received</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${gradeA}</div><div class="stat-label">Warm (A)</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--amber)">${gradeB}</div><div class="stat-label">Lukewarm (B)</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--purple)">${atTarget}</div><div class="stat-label">At target cos</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--coral)">${notYetContacted}</div><div class="stat-label">Not yet contacted</div></div>
     </div>
     ${contacts.length > 0 ? `<div style="margin-bottom:14px"><button class="btn btn-amber btn-sm" onclick="openGradeReviewer()">✦ Smart grade review</button></div>` : ''}
     <div class="add-form-wrap">
@@ -1655,8 +2027,36 @@ function renderContactsList() {
   const countEl = document.getElementById('filter-count');
   if (countEl) countEl.textContent = `${filtered.length} shown`;
 
-  // Update clear button visibility
-  const filtersActive = contactFilters.grade || contactFilters.status || contactFilters.relationship || contactFilters.search;
+  // Company pill row — populate when targetOnly is active
+  const cpRow = document.getElementById('company-pill-row');
+  if (cpRow) {
+    if (contactFilters.targetOnly) {
+      // Build list of target companies that actually have contacts (any grade)
+      const coMap = {};
+      state.contacts.forEach(c => {
+        const co = (c.company || '').trim();
+        const coL = co.toLowerCase();
+        if (co && state.TARGET_COS.some(t => coL.includes(t))) {
+          coMap[coL] = coMap[coL] || { display: co, count: 0 };
+          coMap[coL].count++;
+        }
+      });
+      const coList = Object.entries(coMap).sort((a, b) => b[1].count - a[1].count);
+      cpRow.innerHTML =
+        `<span class="grade-pill-label" style="color:var(--teal)">Company:</span>` +
+        `<button class="grade-pill ${!contactFilters.company?'active':''}" onclick="setCompanyFilter('')">All (${coList.reduce((s,[,v])=>s+v.count,0)})</button>` +
+        coList.map(([coL, {display, count}]) =>
+          `<button class="grade-pill ${contactFilters.company===coL?'active':''}" onclick="setCompanyFilter('${coL.replace(/'/g,"\\'")}')">${h(display)} <span style="opacity:0.65">${count}</span></button>`
+        ).join('');
+      cpRow.style.display = 'flex';
+    } else {
+      cpRow.style.display = 'none';
+      cpRow.innerHTML = '';
+    }
+  }
+
+  // Clear button: show when non-default filters active (default = grade:'AB', no other filters)
+  const filtersActive = contactFilters.grade !== 'AB' || contactFilters.status || contactFilters.relationship || contactFilters.search || contactFilters.targetOnly || contactFilters.company;
   const bar = document.getElementById('contacts-filter-bar');
   if (bar) {
     let clearBtn = bar.querySelector('.clear-filters-btn');
@@ -1664,7 +2064,7 @@ function renderContactsList() {
       const countSpan = bar.querySelector('.filter-count');
       const btn = document.createElement('button');
       btn.className = 'btn btn-ghost btn-sm clear-filters-btn';
-      btn.textContent = '✕ Clear filters';
+      btn.textContent = '✕ Reset';
       btn.onclick = clearContactFilters;
       bar.insertBefore(btn, countSpan);
     } else if (!filtersActive && clearBtn) {
@@ -1675,8 +2075,10 @@ function renderContactsList() {
   // Import banner
   let html = '';
   if (importBanner) {
-    html += `<div class="banner banner-${importBanner.type||'success'}">
-      <span>${h(importBanner.msg)}</span>
+    html += `<div class="banner banner-${importBanner.type||'success'}" style="flex-wrap:wrap;gap:8px">
+      <span style="flex:1">${h(importBanner.msg)}</span>
+      ${importBanner.memOffer ? `<button class="btn btn-secondary btn-sm" style="white-space:nowrap"
+        onclick="freeMessageMemory()">🗜 Free up memory</button>` : ''}
       <button class="banner-close" onclick="importBanner=null; renderContactsList()">✕</button>
     </div>`;
   }
@@ -1693,28 +2095,75 @@ function renderContactsList() {
       <div class="empty-state-sub"><a href="#" onclick="clearContactFilters(); return false" style="color:var(--purple)">Clear filters</a></div>
     </div>`;
   } else {
-    filtered.forEach(contact => {
+    const pageSlice = filtered.slice(0, contactPage * CONTACTS_PER_PAGE);
+    const showHeaders = contactFilters.grade === 'AB' || contactFilters.grade === '';
+    let lastGrade = null;
+    const gradeLabels = { A: '🔥 Warm — Grade A', B: '★ Lukewarm — Grade B', C: '❄ Cold — Grade C' };
+    pageSlice.forEach(contact => {
       const idx = state.contacts.indexOf(contact);
+      if (showHeaders && contact.grade !== lastGrade) {
+        lastGrade = contact.grade;
+        html += `<div style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;
+          color:var(--muted);padding:14px 0 6px;border-top:1px solid var(--border);margin-top:${lastGrade==='A'?'0':'4px'}">
+          ${gradeLabels[contact.grade] || contact.grade}
+        </div>`;
+      }
       html += renderContactCard(contact, idx);
     });
+    if (filtered.length > pageSlice.length) {
+      const remaining = filtered.length - pageSlice.length;
+      html += `<div style="text-align:center;padding:20px 0 28px">
+        <button class="btn btn-secondary" onclick="contactPage++; renderContactsList()">
+          Load more (${remaining} remaining)
+        </button>
+      </div>`;
+    }
   }
 
   listEl.innerHTML = html;
 
-  // Restore expanded drawers
-  expandedCards.forEach(idx => {
-    const drawer = document.getElementById(`drawer-${idx}`);
-    if (drawer) { drawer.classList.add('open'); renderDrawerContent(idx); }
-  });
+  // Restore active card highlight after list re-render
+  if (sideDrawerIdx !== null) {
+    const card = document.querySelector(`.contact-card[data-idx="${sideDrawerIdx}"]`);
+    if (card) card.classList.add('drawer-active');
+  }
+}
+
+function setGradeFilter(grade) {
+  contactFilters.grade = grade;
+  contactPage = 1;
+  // Update pill active states — but leave the target pill alone
+  const pillMap = { '':'pill-all', 'A':'pill-a', 'B':'pill-b', 'C':'pill-c', 'AB':'pill-ab' };
+  document.querySelectorAll('.grade-pill:not(.pill-target)').forEach(p => p.classList.remove('active'));
+  const cls = pillMap[grade];
+  if (cls) { const el = document.querySelector(`.grade-pill.${cls}`); if (el) el.classList.add('active'); }
+  renderContactsList();
+}
+
+function setTargetFilter() {
+  contactFilters.targetOnly = !contactFilters.targetOnly;
+  if (!contactFilters.targetOnly) contactFilters.company = ''; // clear sub-filter when toggling off
+  contactPage = 1;
+  const btn = document.querySelector('.grade-pill.pill-target');
+  if (btn) btn.classList.toggle('active', contactFilters.targetOnly);
+  renderContactsList();
+}
+
+function setCompanyFilter(co) {
+  contactFilters.company = co;
+  contactPage = 1;
+  renderContactsList();
 }
 
 function clearContactFilters() {
-  contactFilters = { grade:'', status:'', relationship:'', search:'' };
-  // reset UI inputs without full re-render
+  contactFilters = { grade:'AB', status:'', relationship:'', search:'', targetOnly:false, company:'' };
+  contactPage = 1;
   const s = document.getElementById('contact-search'); if (s) s.value = '';
-  const g = document.getElementById('filter-grade');  if (g) g.value = '';
   const st= document.getElementById('filter-status'); if (st) st.value = '';
   const r = document.getElementById('filter-rel');    if (r) r.value = '';
+  // Reset pills
+  document.querySelectorAll('.grade-pill').forEach(p => p.classList.remove('active'));
+  const ab = document.querySelector('.grade-pill.pill-ab'); if (ab) ab.classList.add('active');
   renderContactsList();
 }
 
@@ -1740,8 +2189,8 @@ function renderContactCard(c, idx) {
       </span>`
     : '';
 
-  return `<div class="contact-card" id="card-${idx}">
-    <div class="contact-card-header">
+  return `<div class="contact-card" id="card-${idx}" data-idx="${idx}">
+    <div class="contact-card-header" onclick="handleCardClick(event,${idx})">
       <div class="avatar ${avatarCls}">${h(initials.toUpperCase())}</div>
       <div class="contact-info">
         <div class="contact-name-row">
@@ -1753,60 +2202,67 @@ function renderContactCard(c, idx) {
         <div class="contact-role">${h(c.role || [c.position, c.company].filter(Boolean).join(', ') || '—')}</div>
         ${signals ? `<div class="contact-signals">${h(signals)}</div>` : ''}
         <div class="contact-actions">
-          <a class="contact-link" href="${h(liUrl)}" target="_blank" rel="noopener">LinkedIn ↗</a>
-          <a class="contact-link" href="${h(msgUrl)}" target="_blank" rel="noopener" title="Opens their LinkedIn profile — click Message from there">Message ↗</a>
-          <a class="contact-link" href="${h(gmailUrl)}" target="_blank" rel="noopener">Email ↗</a>
-          <select class="grade-select-inline" onchange="updateContactGrade(${idx}, this.value)">
-            <option value="A" ${c.grade==='A'?'selected':''}>A</option>
-            <option value="B" ${c.grade==='B'?'selected':''}>B</option>
-            <option value="C" ${c.grade==='C'?'selected':''}>C</option>
-          </select>
-          <select class="grade-select-inline" onchange="updateContactStatus(${idx}, this.value)" style="width:130px">
+          ${c.company ? `<a class="contact-link" style="font-weight:600;color:var(--purple)" href="${h(getJobLinks(c.company, state.profile.target)[0].url)}" target="_blank" rel="noopener" title="Search open roles at ${h(c.company)}" onclick="event.stopPropagation()">Jobs ↗</a>` : ''}
+          <a class="contact-link" href="${h(liUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="View LinkedIn profile">Profile ↗</a>
+          <a class="contact-link" href="${h(msgUrl)}" target="_blank" rel="noopener" title="Opens their LinkedIn profile — click Message from there" onclick="event.stopPropagation()">Message ↗</a>
+          <select class="grade-select-inline" onchange="updateContactStatus(${idx}, this.value)" style="width:130px" onclick="event.stopPropagation()">
             ${CONTACT_STATUSES.map(s => `<option value="${h(s)}" ${c.status===s?'selected':''}>${h(s)}</option>`).join('')}
           </select>
-          <button class="outreach-btn" onclick="toggleDrawer(${idx})">Outreach ↓</button>
-          <button class="btn btn-ghost btn-sm" style="font-size:11px;padding:2px 8px" onclick="toggleContactNote(${idx})">📝 Note</button>
         </div>
       </div>
-    </div>
-    <div class="contact-note-row" id="note-row-${idx}" style="display:${c._note ? 'block' : 'none'}; padding:8px 16px 10px; border-top:1px solid var(--border); background:var(--surface2)">
-      ${c._note
-        ? `<div class="contact-note-display" id="note-display-${idx}" onclick="editContactNote(${idx})" title="Click to edit"
-             style="font-size:13px;color:var(--text);cursor:text;padding:4px 0">
-             <span style="font-size:10px;font-weight:700;letter-spacing:0.8px;color:var(--faint);text-transform:uppercase;display:block;margin-bottom:4px">Feedback received</span>
-             ${h(c._note)}
-           </div>`
-        : `<div id="note-display-${idx}"></div>`}
-      <div id="note-edit-${idx}" style="display:none">
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.8px;color:var(--faint);text-transform:uppercase;margin-bottom:4px">Feedback received</div>
-        <textarea id="note-ta-${idx}" style="width:100%;min-height:60px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);resize:vertical;box-sizing:border-box"
-          placeholder="What did they say about your fit, the team, open roles…">${h(c._note || '')}</textarea>
-        <div style="display:flex;gap:8px;margin-top:6px">
-          <button class="btn btn-primary btn-sm" onclick="saveContactNote(${idx})">Save</button>
-          <button class="btn btn-ghost btn-sm" onclick="cancelContactNote(${idx})">Cancel</button>
-          ${c._note ? `<button class="btn btn-red btn-sm" onclick="clearContactNote(${idx})">Clear</button>` : ''}
-        </div>
-      </div>
-    </div>
-    <div class="outreach-drawer" id="drawer-${idx}">
-      <!-- Filled in Stage 5 -->
-      <div style="padding:8px 0; color:var(--muted); font-size:13px">Outreach drawer loading in Stage 5…</div>
     </div>
   </div>`;
 }
 
-function toggleDrawer(idx) {
-  const drawer = document.getElementById(`drawer-${idx}`);
-  if (!drawer) return;
-  const isOpen = drawer.classList.contains('open');
-  if (isOpen) {
-    drawer.classList.remove('open');
-    expandedCards.delete(idx);
-  } else {
-    drawer.classList.add('open');
-    expandedCards.add(idx);
-    renderDrawerContent(idx);
+let sideDrawerIdx = null;
+
+// Card click — open drawer or silently switch to another contact (never close on card click)
+function handleCardClick(e, idx) {
+  if (e.target.closest('a, button, select, input, textarea')) return;
+  openSideDrawer(idx);
+}
+
+function toggleDrawer(idx) { openSideDrawer(idx); } // kept for any legacy calls
+
+function openSideDrawer(idx) {
+  const c = state.contacts[idx];
+  if (!c) return;
+
+  const alreadyOpen = sideDrawerIdx !== null;
+  sideDrawerIdx = idx;
+
+  // Highlight active card, remove from all others
+  document.querySelectorAll('.contact-card.drawer-active').forEach(el => el.classList.remove('drawer-active'));
+  const activeCard = document.querySelector(`.contact-card[data-idx="${idx}"]`);
+  if (activeCard) activeCard.classList.add('drawer-active');
+
+  // Update header (always — content may have changed)
+  document.getElementById('side-drawer-header').innerHTML = `
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h(c.name)}</div>
+      <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        ${h(c.company || '')}${c.role ? ' · ' + h(c.role) : ''}
+      </div>
+    </div>
+    ${gradeBadge(c.grade)}
+    <button class="drawer-close-btn" onclick="closeSideDrawer()" title="Close (Esc)">✕</button>`;
+
+  renderDrawerContent(idx);
+
+  // Only animate open if drawer was closed — if already open just swap content
+  if (!alreadyOpen) {
+    document.getElementById('side-drawer').classList.add('open');
+    document.getElementById('side-drawer-overlay').classList.add('open');
+    document.body.classList.add('side-drawer-open');
   }
+}
+
+function closeSideDrawer() {
+  sideDrawerIdx = null;
+  document.getElementById('side-drawer').classList.remove('open');
+  document.getElementById('side-drawer-overlay').classList.remove('open');
+  document.body.classList.remove('side-drawer-open');
+  document.querySelectorAll('.contact-card.drawer-active').forEach(el => el.classList.remove('drawer-active'));
 }
 
 // ─────────────────────────────────────────────
@@ -1838,7 +2294,8 @@ function getJobLinks(company, targetRoles) {
 }
 
 function renderDrawerContent(idx) {
-  const drawer = document.getElementById(`drawer-${idx}`);
+  if (sideDrawerIdx !== idx) return; // only render if this contact is currently open
+  const drawer = document.getElementById('side-drawer-body');
   if (!drawer) return;
   const c = state.contacts[idx];
   if (!c) return;
@@ -1847,15 +2304,17 @@ function renderDrawerContent(idx) {
   const liUrl  = c.url || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(c.name)}`;
   const msgUrl = slug ? `https://www.linkedin.com/in/${slug}` : liUrl;
   const jobLinks = getJobLinks(c.company, state.profile.target);
-  const intelCached = c.companyIntel;
+  const intelCached = c.company ? state.COMPANY_INTEL[coKey(c.company)] : null;
 
   let intelHtml = '';
   if (intelCached) {
+    const age = intelCached.fetchedAt ? Math.round((Date.now() - new Date(intelCached.fetchedAt)) / 86400000) : null;
+    const ageLabel = age !== null ? ` · ${age}d ago` : '';
     intelHtml = `
       ${intelCached.glassdoorRating ? `<span class="intel-chip">Glassdoor ${intelCached.glassdoorRating} ★</span>` : ''}
       ${intelCached.salaryRange     ? `<span class="intel-chip">${h(intelCached.salaryRange)}</span>` : ''}
       ${intelCached.reviewSentiment ? `<span class="intel-chip" title="${h(intelCached.reviewSentiment)}">Reviews ℹ</span>` : ''}
-      <button class="btn btn-ghost btn-sm" onclick="loadCompanyIntel(${idx})">↻ Refresh</button>`;
+      <button class="btn btn-ghost btn-sm" onclick="loadCompanyIntel(${idx})">↻ Refresh${ageLabel}</button>`;
   } else {
     intelHtml = `<button class="btn btn-secondary btn-sm" onclick="loadCompanyIntel(${idx})" id="intel-btn-${idx}">→ Load intel</button>
       <span id="intel-result-${idx}" style="font-size:12px;color:var(--muted)"></span>`;
@@ -1863,9 +2322,16 @@ function renderDrawerContent(idx) {
 
   drawer.innerHTML = `
     <div style="padding:4px 0 12px">
-      <div class="drawer-section-label">Find open roles at ${h(c.company || 'this company')}</div>
+      <div class="drawer-section-label">Grade</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button class="btn btn-sm${c.grade==='A'?' btn-teal':' btn-ghost'}" onclick="updateContactGrade(${idx},'A');renderDrawerContent(${idx})">A</button>
+        <button class="btn btn-sm${c.grade==='B'?' btn-amber':' btn-ghost'}" onclick="updateContactGrade(${idx},'B');renderDrawerContent(${idx})">B</button>
+        <button class="btn btn-sm${c.grade==='C'?' btn-secondary':' btn-ghost'}" onclick="updateContactGrade(${idx},'C');renderDrawerContent(${idx})">C</button>
+      </div>
+
+      <div class="drawer-section-label">More job boards <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--faint)">(LinkedIn Jobs is on the card)</span></div>
       <div class="job-links">
-        ${jobLinks.map(l => `<a class="btn btn-secondary btn-sm" href="${h(l.url)}" target="_blank" rel="noopener">${h(l.label)} ↗</a>`).join('')}
+        ${jobLinks.slice(1).map(l => `<a class="btn btn-secondary btn-sm" href="${h(l.url)}" target="_blank" rel="noopener">${h(l.label)} ↗</a>`).join('')}
       </div>
 
       <div class="drawer-section-label">Role you want to reference</div>
@@ -1888,6 +2354,7 @@ function renderDrawerContent(idx) {
         <button class="btn btn-secondary btn-sm" onclick="copyMessage(${idx})">Copy</button>
         <button class="btn btn-teal btn-sm" onclick="logAsSent(${idx})">Log as sent</button>
         <button class="btn btn-ghost btn-sm" onclick="generateMessage(${idx})">Regenerate</button>
+        <button class="btn btn-ghost btn-sm" onclick="generateResume(${idx})" title="Generate a tailored resume for this role">📄 Tailor resume</button>
         <a class="btn btn-secondary btn-sm" href="${h(msgUrl)}" target="_blank" rel="noopener" style="margin-left:auto">Message on LinkedIn ↗</a>
         <span class="drawer-status" id="drawer-status-${idx}"></span>
       </div>
@@ -1902,6 +2369,17 @@ function renderDrawerContent(idx) {
           <span class="drawer-status" id="ref-ask-status-${idx}"></span>
         </div>
       </div>` : ''}
+
+      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px">
+        <div class="drawer-section-label">Feedback received</div>
+        <textarea id="drawer-note-ta-${idx}" style="width:100%;min-height:70px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);resize:vertical;box-sizing:border-box"
+          placeholder="What did they say about your fit, the team, open roles…">${h(c._note || '')}</textarea>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="btn btn-primary btn-sm" onclick="saveContactNote(${idx})">Save</button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelContactNote(${idx})">Cancel</button>
+          ${c._note ? `<button class="btn btn-red btn-sm" onclick="clearContactNote(${idx})">Clear</button>` : ''}
+        </div>
+      </div>
     </div>`;
 }
 
@@ -2183,15 +2661,22 @@ function logAsSent(idx) {
 
 async function loadCompanyIntel(idx) {
   const c = state.contacts[idx];
-  if (!c) return;
+  if (!c || !c.company) return;
   const cfg = getAIConfig();
   if (!cfg.apiKey && cfg.provider !== 'ollama') {
     const row = document.getElementById(`intel-row-${idx}`);
     if (row) row.innerHTML = `<span style="color:var(--red);font-size:12px">Add an AI provider in Setup to load intel.</span>`;
     return;
   }
-  const btn = document.getElementById(`intel-btn-${idx}`);
-  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+
+  // Show loading state on all open drawers for the same company
+  const key = coKey(c.company);
+  state.contacts.forEach((ct, i) => {
+    if (coKey(ct.company) === key) {
+      const btn = document.getElementById(`intel-btn-${i}`);
+      if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+    }
+  });
 
   const prompt = `What do you know about "${c.company}" as a place to work?
 Return ONLY a JSON object:
@@ -2210,15 +2695,26 @@ No other text. Use null for unknown fields.`;
     const match = text.match(/\{[\s\S]*\}/);
     const intel = match ? JSON.parse(match[0]) : {};
     intel.fetchedAt = new Date().toISOString();
-    intel._estimated = cfg.provider !== 'anthropic' || true; // flag as estimated unless live search
-    state.contacts[idx].companyIntel = intel;
-    saveContacts();
-    renderDrawerContent(idx);
+
+    // Write to shared cache (not per-contact)
+    state.COMPANY_INTEL[key] = intel;
+    saveCompanyIntel();
+
+    // Refresh all open drawers for contacts at this company
+    state.contacts.forEach((ct, i) => {
+      if (coKey(ct.company) === key) renderDrawerContent(i);
+    });
+    // Refresh any open application card too
+    renderApplicationsTab();
   } catch(e) {
-    const row = document.getElementById(`intel-row-${idx}`);
-    if (row) row.innerHTML = `
-      <span style="color:var(--red);font-size:12px">Failed: ${h(e.message)}</span>
-      <button class="btn btn-secondary btn-sm" onclick="loadCompanyIntel(${idx})">Retry</button>`;
+    state.contacts.forEach((ct, i) => {
+      if (coKey(ct.company) === key) {
+        const row = document.getElementById(`intel-row-${i}`);
+        if (row) row.innerHTML = `
+          <span style="color:var(--red);font-size:12px">Failed: ${h(e.message)}</span>
+          <button class="btn btn-secondary btn-sm" onclick="loadCompanyIntel(${i})">Retry</button>`;
+      }
+    });
   }
 }
 
@@ -2375,14 +2871,19 @@ function editContactNote(idx) {
 }
 
 function saveContactNote(idx) {
-  const val = document.getElementById(`note-ta-${idx}`)?.value?.trim() || '';
+  // Try drawer textarea first, fall back to legacy card textarea
+  const val = (document.getElementById(`drawer-note-ta-${idx}`) || document.getElementById(`note-ta-${idx}`))?.value?.trim() || '';
   if (!state.contacts[idx]) return;
   state.contacts[idx]._note = val;
   saveContacts();
-  renderContactsList();
+  renderDrawerContent(idx);
 }
 
 function cancelContactNote(idx) {
+  // In drawer mode, just re-render the drawer to reset the textarea
+  const drawerTa = document.getElementById(`drawer-note-ta-${idx}`);
+  if (drawerTa) { drawerTa.value = state.contacts[idx]?._note || ''; return; }
+  // Legacy card mode
   const c = state.contacts[idx];
   const editEl = document.getElementById(`note-edit-${idx}`);
   const displayEl = document.getElementById(`note-display-${idx}`);
@@ -2395,7 +2896,7 @@ function clearContactNote(idx) {
   if (!state.contacts[idx]) return;
   state.contacts[idx]._note = '';
   saveContacts();
-  renderContactsList();
+  renderDrawerContent(idx);
 }
 
 // (openGradeReviewer defined above)
@@ -2430,8 +2931,10 @@ function smartScore(contact, archiveData) {
   });
   if (isRec) { score += 50; reasons.push('wrote you a recommendation'); }
 
-  // Signal 3: At a target company
-  if (TARGET_COS.some(t => co.includes(t))) { score += 40; reasons.push('at target company'); }
+  // Signal 3: At a target company (exclude user's current company)
+  const currentCo = (archiveData.profile?.currentCompany || '').toLowerCase().trim();
+  const isCurrentCo = currentCo && co.includes(currentCo);
+  if (!isCurrentCo && TARGET_COS.some(t => co.includes(t))) { score += 40; reasons.push('at target company'); }
 
   // Signal 4: PM or product title
   const pmTitles = ['product manager','head of product','vp product','director of product',
@@ -2490,7 +2993,7 @@ function smartScore(contact, archiveData) {
 
   // Signal 10: Recruiter / talent at a target company (high-value for referrals)
   const isRecruiter = ['recruiter','talent acquisition','talent partner','head of talent','hr business'].some(t => pos.includes(t));
-  if (isRecruiter && TARGET_COS.some(t => co.includes(t))) { score += 30; reasons.push('recruiter at target company'); }
+  if (isRecruiter && !isCurrentCo && TARGET_COS.some(t => co.includes(t))) { score += 30; reasons.push('recruiter at target company'); }
 
   // Signal 11: Their title matches or is senior to user's target role
   const userTarget = (archiveData.profile?.target || '').toLowerCase();
@@ -2534,14 +3037,40 @@ function smartScore(contact, archiveData) {
 function loadState() {
   try { state.contacts     = JSON.parse(localStorage.getItem(LS.contacts)    || '[]'); } catch(e){ state.contacts = []; }
   try { state.applications = JSON.parse(localStorage.getItem(LS.applications)|| '[]'); } catch(e){ state.applications = []; }
-  try { const p = JSON.parse(localStorage.getItem(LS.profile) || '{}'); state.profile = Object.assign({ name:'', headline:'', bg:'', target:'', currentLevel:'', topSkills:[], location:'' }, p); } catch(e){}
+  try { const p = JSON.parse(localStorage.getItem(LS.profile) || '{}'); state.profile = Object.assign({ name:'', headline:'', bg:'', target:'', currentLevel:'', topSkills:[], location:'', currentCompany:'', companyType:'', whyLooking:'' }, p); } catch(e){}
   try { state.MSG_LOOKUP      = JSON.parse(localStorage.getItem(LS.msg)  || '{}'); } catch(e){ state.MSG_LOOKUP = {}; }
   try { state.RECOMMENDERS    = JSON.parse(localStorage.getItem(LS.rec)  || '[]'); } catch(e){ state.RECOMMENDERS = []; }
   try { state.POSITIONS_DATA  = JSON.parse(localStorage.getItem(LS.pos)  || '[]'); } catch(e){ state.POSITIONS_DATA = []; }
   try { state.COMPANY_FOLLOWS = JSON.parse(localStorage.getItem(LS.cofo) || '{}'); } catch(e){ state.COMPANY_FOLLOWS = {}; }
   try { state.ENDORSERS       = JSON.parse(localStorage.getItem(LS.end)  || '[]'); } catch(e){ state.ENDORSERS = []; }
   try { state.SKILLS          = JSON.parse(localStorage.getItem(LS.skills)|| '[]'); } catch(e){ state.SKILLS = []; }
-  try { const custom = JSON.parse(localStorage.getItem(LS.targets) || '[]'); state.TARGET_COS = [...new Set([...DEFAULT_TARGET_COS, ...custom])]; } catch(e){}
+  try {
+    const raw = localStorage.getItem(LS.custom_targets) || localStorage.getItem(LS.targets) || '[]';
+    const custom = JSON.parse(raw).map(t => t.toLowerCase().trim()).filter(Boolean);
+    state.TARGET_COS = [...new Set([...DEFAULT_TARGET_COS, ...custom])];
+  } catch(e){}
+  try { state.COMPANY_INTEL = JSON.parse(localStorage.getItem(LS.company_intel) || '{}'); } catch(e){ state.COMPANY_INTEL = {}; }
+}
+
+function saveCustomTargets(arr) {
+  const clean = arr.map(t => t.toLowerCase().trim()).filter(Boolean);
+  localStorage.setItem(LS.custom_targets, JSON.stringify(clean));
+  state.TARGET_COS = [...new Set([...DEFAULT_TARGET_COS, ...clean])];
+}
+
+// Normalise a company name → cache key (lower, trimmed, strip Ltd/Inc/etc)
+function coKey(name) {
+  return (name || '').toLowerCase().trim()
+    .replace(/\b(pvt|ltd|inc|llc|corp|limited|private)\b\.?/gi, '')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function saveCompanyIntel() {
+  try { localStorage.setItem(LS.company_intel, JSON.stringify(state.COMPANY_INTEL)); } catch(e){}
+}
+
+function getCustomTargets() {
+  try { return JSON.parse(localStorage.getItem(LS.custom_targets) || localStorage.getItem(LS.targets) || '[]'); } catch(e){ return []; }
 }
 
 function saveContacts()      { try { localStorage.setItem(LS.contacts,     JSON.stringify(state.contacts));     } catch(e){ showQuotaWarning(); } }
@@ -2559,7 +3088,17 @@ function saveArchiveData() {
 }
 
 function showQuotaWarning() {
-  showBanner('Storage limit reached. Consider clearing archive data in Setup (your contacts are safe).', 'warn');
+  // Show banner with inline clear action
+  const bannerId = 'quota-banner';
+  if (document.getElementById(bannerId)) return; // already showing
+  const bannerEl = document.createElement('div');
+  bannerEl.id = bannerId;
+  bannerEl.className = 'banner banner-warn';
+  bannerEl.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:300;max-width:520px;width:90%;display:flex;align-items:center;gap:12px;padding:12px 16px';
+  bannerEl.innerHTML = `<span style="flex:1">⚠️ Storage limit reached. Clear archive data to free space — your contacts and applications are safe.</span>
+    <button class="btn btn-secondary btn-sm" onclick="clearArchiveData();document.getElementById('quota-banner')?.remove()">Clear archive</button>
+    <button style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted)" onclick="this.closest('#quota-banner').remove()">×</button>`;
+  document.body.appendChild(bannerEl);
 }
 
 function getApiKey() { return localStorage.getItem(LS.apikey) || ''; }
@@ -2958,38 +3497,54 @@ function processSkills(text) {
 
 function processProfile(text) {
   const rows = parseCSV(text);
-  const kv = {};
-  for (const r of rows) {
-    if (r.length >= 2) kv[r[0].trim().toLowerCase()] = r[1].trim();
+  if (!rows.length) return {};
+
+  let first = '', last = '', headline = '', loc = '', summary = '';
+
+  // Detect format: columnar (row 0 = headers, row 1 = values)
+  // vs k-v (each row is [field, value])
+  const firstCell = (rows[0][0] || '').trim().toLowerCase();
+  if (firstCell === 'first name') {
+    // Columnar format — LinkedIn exports this way in some regions
+    const headers = rows[0].map(c => c.trim().toLowerCase());
+    const vals    = rows[1] || [];
+    const get = (...keys) => { for (const k of keys) { const i = headers.indexOf(k); if (i >= 0 && vals[i]) return vals[i].trim(); } return ''; };
+    first    = get('first name');
+    last     = get('last name');
+    headline = get('headline');
+    summary  = get('summary');
+    loc      = get('geo location', 'location', 'address');
+  } else {
+    // K-V format (field per row)
+    const kv = {};
+    for (const r of rows) {
+      if (r.length >= 2) kv[r[0].trim().toLowerCase()] = r[1].trim();
+    }
+    first    = kv['first name']   || '';
+    last     = kv['last name']    || '';
+    headline = kv['headline']     || '';
+    summary  = kv['summary']      || '';
+    loc      = kv['geo location'] || kv['address'] || kv['location'] || '';
   }
-  // Name — require BOTH first and last to avoid storing a bare last name
-  if (!state.profile.name) {
-    const first = kv['first name'] || '';
-    const last  = kv['last name']  || '';
-    if (first && last) state.profile.name = `${first} ${last}`.trim();
-    else if (first)    state.profile.name = first;
-    // if only last name is present, skip — user should enter full name in Setup
+
+  if (!state.profile.name && (first || last)) {
+    state.profile.name = `${first} ${last}`.trim();
   }
-  // Headline
-  if (!state.profile.headline && kv['headline']) state.profile.headline = kv['headline'];
-  // Background / summary
-  if (!state.profile.bg && kv['summary'])        state.profile.bg = kv['summary'].slice(0, 400);
-  // Location — LinkedIn exports as "Geo Location" or "Address"
-  if (!state.profile.location) {
-    const loc = kv['geo location'] || kv['address'] || kv['location'] || '';
-    if (loc) state.profile.location = loc;
-  }
+  if (!state.profile.headline && headline) state.profile.headline = headline;
+  if (!state.profile.bg && summary)        state.profile.bg = summary.slice(0, 400);
+  if (!state.profile.location && loc)      state.profile.location = loc;
+
   saveProfile();
   return { name: state.profile.name };
 }
 
 function inferCurrentLevelFromPositions() {
-  // Use the most recent position's title as currentLevel if not manually set
-  if (state.profile.currentLevel || state.POSITIONS_DATA.length === 0) return;
+  if (state.POSITIONS_DATA.length === 0) return;
   const sorted = [...state.POSITIONS_DATA].sort((a, b) => (b.from || '').localeCompare(a.from || ''));
-  const latestTitle = sorted[0]?.title || '';
-  if (latestTitle) {
-    state.profile.currentLevel = latestTitle;
+  const latest = sorted[0];
+  if (latest) {
+    if (!state.profile.currentLevel && latest.title)      { state.profile.currentLevel = latest.title; }
+    if (!state.profile.currentCompany && latest.co_display) { state.profile.currentCompany = latest.co_display; }
     saveProfile();
   }
 }
@@ -3018,17 +3573,237 @@ async function processZipFile(file) {
 }
 
 // ─────────────────────────────────────────────
+// RESUME GENERATION
+// ─────────────────────────────────────────────
+async function generateResume(idx) {
+  const c        = state.contacts[idx];
+  const profile  = state.profile;
+  const roleHint = (document.getElementById(`role-input-${idx}`)?.value || '').trim();
+  const cfg      = getAIConfig();
+
+  setDrawerStatus(idx, 'Building resume…', 'info');
+
+  const positions = [...state.POSITIONS_DATA]
+    .sort((a, b) => (b.from || '').localeCompare(a.from || ''))
+    .slice(0, 8); // cap at 8 roles to stay within token budget
+
+  // Format positions for the prompt
+  const posText = positions.map(p => {
+    const from = p.from ? p.from.slice(0,7) : '';
+    const to   = p.to && p.to < new Date().toISOString() ? p.to.slice(0,7) : 'Present';
+    return `${p.title} at ${p.co_display} (${from} – ${to})`;
+  }).join('\n');
+
+  const skills = state.SKILLS.slice(0, 20).join(', ');
+  const targetRole = roleHint || profile.target || 'a senior professional role';
+  const company    = c?.company || '';
+  const pastedResume = localStorage.getItem(LS.resume) || '';
+
+  if (!cfg.apiKey && cfg.provider !== 'ollama') {
+    const resumeData = buildStaticResume(profile, positions, skills, targetRole, company);
+    openResumeModal(resumeData, profile.name);
+    setDrawerStatus(idx, 'Resume ready (template — no AI key)', 'info');
+    return;
+  }
+
+  // Build the work history section — prefer pasted resume, fall back to positions CSV
+  const workSection = pastedResume
+    ? `EXISTING RESUME (use as the base — rewrite and tailor, do not fabricate new jobs):\n${pastedResume.slice(0, 3000)}`
+    : `WORK HISTORY from LinkedIn (titles + dates only — infer relevant bullets):\n${posText || 'No positions data.'}`;
+
+  const prompt = `You are tailoring a professional resume for ${profile.name || 'a senior professional'}.
+
+PROFILE:
+Name: ${profile.name || ''}
+Headline: ${profile.headline || ''}
+Background: ${profile.bg || 'Senior professional'}
+Current level: ${profile.currentLevel || ''}
+Location: ${profile.location || ''}
+Company type preference: ${profile.companyType || 'any'}
+${skills ? `Skills: ${skills}` : ''}
+
+TARGET ROLE: ${targetRole}${company ? ` at ${company}` : ''}
+
+${workSection}
+
+INSTRUCTIONS:
+Return a tailored resume as JSON with this exact structure:
+{
+  "summary": "3-sentence professional summary tailored to ${targetRole}. Confident, first-person, present tense.",
+  "experience": [
+    {
+      "title": "job title",
+      "company": "company name",
+      "from": "Month YYYY",
+      "to": "Month YYYY or Present",
+      "bullets": ["strong action-verb achievement bullet", "quantified result where possible", "relevant to ${targetRole}"]
+    }
+  ],
+  "skills": ["up to 12 skills most relevant to the target role"]
+}
+
+Rules:
+- If existing resume was provided, use REAL content — rewrite bullets to emphasise relevance to "${targetRole}", do not invent new jobs
+- If only LinkedIn positions provided, generate plausible achievement bullets based on title and seniority
+- 2-3 bullets per role maximum
+- Bullets start with strong action verbs, quantified where plausible
+- skills array should be the most relevant 10-12 from the user's background
+- Return ONLY the JSON object, no markdown, no explanation`;
+
+  try {
+    const raw = await callAI(prompt, 1200);
+    // Extract JSON robustly
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in response');
+    const data = JSON.parse(jsonMatch[0]);
+    data._positions = positions; // keep for rendering dates
+    data._name      = profile.name || '';
+    data._headline  = profile.headline || '';
+    data._location  = profile.location || '';
+    data._target    = targetRole;
+    openResumeModal(data, profile.name || 'Resume');
+    setDrawerStatus(idx, 'Resume ready ✓', 'success');
+  } catch(e) {
+    // Fall back to static resume
+    const resumeData = buildStaticResume(profile, positions, skills, targetRole, company);
+    openResumeModal(resumeData, profile.name);
+    setDrawerStatus(idx, 'Used template (AI error: ' + e.message.slice(0,40) + ')', 'warn');
+  }
+}
+
+function buildStaticResume(profile, positions, skills, targetRole, company) {
+  return {
+    _name:     profile.name || '',
+    _headline: profile.headline || '',
+    _location: profile.location || '',
+    _target:   targetRole,
+    summary: profile.bg || `${profile.currentLevel || 'Senior professional'} with extensive experience. Exploring ${targetRole} opportunities${company ? ' at ' + company : ''}.`,
+    experience: positions.map(p => ({
+      title:   p.title,
+      company: p.co_display,
+      from:    p.from ? new Date(p.from).toLocaleDateString('en-GB',{month:'short',year:'numeric'}) : '',
+      to:      (!p.to || p.to >= new Date().toISOString()) ? 'Present' : new Date(p.to).toLocaleDateString('en-GB',{month:'short',year:'numeric'}),
+      bullets: []
+    })),
+    skills: skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : []
+  };
+}
+
+function openResumeModal(data, name) {
+  const modal = document.getElementById('resume-modal');
+
+  const experienceHtml = (data.experience || []).map(job => `
+    <div class="r-job">
+      <div class="r-job-header">
+        <div class="r-job-title">${h(job.title || '')}</div>
+        <div class="r-job-dates">${h(job.from || '')}${job.to ? ' – ' + h(job.to) : ''}</div>
+      </div>
+      <div class="r-job-company">${h(job.company || '')}</div>
+      ${job.bullets && job.bullets.length
+        ? `<ul class="r-bullets">${job.bullets.map(b => `<li>${h(b)}</li>`).join('')}</ul>`
+        : ''}
+    </div>`).join('');
+
+  const skillsHtml = (data.skills || []).length
+    ? `<div class="r-section-title">Skills</div><div class="r-skills">${h((data.skills).join(' · '))}</div>`
+    : '';
+
+  modal.innerHTML = `
+    <div class="resume-modal-card">
+      <div class="resume-toolbar">
+        <h2>📄 Tailored resume — ${h(data._target || 'role')}</h2>
+        <button class="btn btn-primary btn-sm" onclick="printResume()">Download / Print PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeResumeModal()">Close</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Review and edit below before printing. Use Cmd+P (Mac) or Ctrl+P (Windows) → Save as PDF.</div>
+
+      <div class="resume-doc" id="resume-doc-content" contenteditable="true" spellcheck="false"
+           style="border:1px solid var(--border);border-radius:8px;padding:32px 36px;min-height:600px;outline:none">
+        <div class="r-name">${h(data._name || '')}</div>
+        <div class="r-headline">${h(data._headline || data._target || '')}</div>
+        <div class="r-contact">${h(data._location || '')}${data._location ? ' · ' : ''}Edit to add email / phone / LinkedIn URL</div>
+        <hr class="r-divider">
+        <div class="r-section-title">Summary</div>
+        <div class="r-summary">${h(data.summary || '')}</div>
+        <div class="r-section-title">Experience</div>
+        ${experienceHtml}
+        ${skillsHtml}
+      </div>
+    </div>`;
+
+  modal.style.display = 'flex';
+}
+
+function closeResumeModal() {
+  const modal = document.getElementById('resume-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function printResume() {
+  const content = document.getElementById('resume-doc-content');
+  if (!content) return;
+  const name    = content.querySelector('.r-name')?.textContent || 'Resume';
+  const win     = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <title>${name} — Resume</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Georgia, serif; color: #1a1a1a; line-height: 1.6;
+             max-width: 760px; margin: 0 auto; padding: 40px 48px; font-size: 13px; }
+      .r-name { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 2px; }
+      .r-headline { font-size: 14px; color: #444; margin-bottom: 5px; }
+      .r-contact { font-size: 12px; color: #666; margin-bottom: 16px; }
+      hr { border: none; border-top: 2px solid #1a1a1a; margin: 0 0 14px; }
+      .r-section-title { font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+             text-transform: uppercase; color: #444; margin: 16px 0 7px; }
+      .r-summary { font-size: 13px; margin-bottom: 4px; }
+      .r-job { margin-bottom: 14px; }
+      .r-job-header { display: flex; justify-content: space-between; align-items: baseline; }
+      .r-job-title { font-size: 13px; font-weight: 700; }
+      .r-job-dates { font-size: 11px; color: #666; }
+      .r-job-company { font-size: 12px; color: #444; margin-bottom: 4px; }
+      ul { margin: 0; padding-left: 16px; }
+      li { font-size: 12px; margin-bottom: 2px; }
+      .r-skills { font-size: 12px; }
+      @media print {
+        body { padding: 24px 32px; }
+        @page { margin: 0.5in; }
+      }
+    </style>
+  </head><body>${content.innerHTML}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
+}
+
+// ─────────────────────────────────────────────
 // Init
 // ─────────────────────────────────────────────
 function init() {
   // Migrate deprecated model names from localStorage
   const storedModel = localStorage.getItem(LS.ai_model);
   if (storedModel && storedModel.startsWith('claude-3')) {
-    localStorage.removeItem(LS.ai_model); // clear old model, will use new default
+    localStorage.removeItem(LS.ai_model);
   }
+
+  // Migrate bad profile name caused by columnar Profile.csv parsing bug
+  try {
+    const stored = JSON.parse(localStorage.getItem(LS.profile) || '{}');
+    const badNames = ['last name', 'first name', 'lastname', 'firstname'];
+    if (stored.name && badNames.includes(stored.name.toLowerCase().trim())) {
+      stored.name = '';
+      localStorage.setItem(LS.profile, JSON.stringify(stored));
+    }
+  } catch(e) {}
 
   loadState();
   updateNavCounts();
+
+  // Warn if opened directly as a file (localStorage won't persist across launchers)
+  if (window.location.protocol === 'file:') {
+    showBanner('You opened WarmPath directly. Use launch.command (Mac) or launch.bat (Windows) so your data persists consistently. ↗', 'warn');
+  }
+
   const onboarded = localStorage.getItem(LS.onboarded);
   if (!onboarded) {
     renderContactsTab();
@@ -3039,6 +3814,11 @@ function init() {
 }
 
 init();
+
+// Close side drawer on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sideDrawerIdx !== null) closeSideDrawer();
+});
 </script>
 </body>
 </html>
