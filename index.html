@@ -358,6 +358,15 @@ body {
   line-height: 1; flex-shrink: 0;
 }
 .drawer-close-btn:hover { background: var(--surface2); color: var(--text); }
+.drawer-back-btn {
+  display: none;
+  background: none; border: none;
+  font-size: 14px; font-weight: 600; color: var(--purple);
+  cursor: pointer; padding: 4px 8px; border-radius: 6px;
+  line-height: 1; flex-shrink: 0; align-items: center; gap: 4px;
+  white-space: nowrap;
+}
+.drawer-back-btn:hover { background: var(--purple-bg); }
 /* legacy inline drawer — kept hidden */
 .outreach-drawer { display: none !important; }
 .drawer-section-label {
@@ -646,8 +655,9 @@ select option { background: var(--surface); }
   .btn-sm { min-height: 34px; padding: 6px 12px; }
   .grade-pill { padding: 6px 14px; }
   .nav-tab { padding: 0 10px; font-size: 13px; }
-  /* Drawer header: larger close button */
-  .drawer-close-btn { font-size: 20px; padding: 8px 10px; }
+  /* Drawer header: back button replaces ✕ on mobile */
+  .drawer-close-btn { display: none !important; }
+  .drawer-back-btn { display: flex !important; }
   /* Drawer actions: wrap on small screens */
   .drawer-actions { flex-wrap: wrap; gap: 6px; }
   /* Contact card: full-width tap target */
@@ -2367,13 +2377,6 @@ function renderContactsTab() {
     <div id="contacts-list"></div>`;
 
   renderContactsList();
-
-  // Demo mode: auto-open the first Grade A contact so new users immediately
-  // see the split-view and understand what the tool does
-  if (isSampleMode() && sideDrawerIdx === null) {
-    const firstA = state.contacts.findIndex(c => c.grade === 'A');
-    if (firstA >= 0) setTimeout(() => openSideDrawer(firstA), 250);
-  }
 }
 
 function renderContactsList() {
@@ -2868,6 +2871,7 @@ function openSideDrawer(idx) {
 
   // Update header (always — content may have changed)
   document.getElementById('side-drawer-header').innerHTML = `
+    <button class="drawer-back-btn" onclick="closeSideDrawer()" title="Back to list">← Back</button>
     <div style="flex:1;min-width:0">
       <div style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h(c.name)}</div>
       <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
