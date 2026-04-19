@@ -176,7 +176,7 @@ body {
 .grade-pill.pill-b.active  { background: var(--amber);  border-color: var(--amber); color: #7a4f00; }
 .grade-pill.pill-c.active  { background: var(--border2);border-color: var(--border2); color: var(--muted); }
 .grade-pill.pill-all.active   { background: var(--surface2); border-color: var(--purple); color: var(--purple); }
-.grade-pill.pill-target.active{ background: var(--teal); border-color: var(--teal); color: #fff; }
+.grade-pill.pill-target.active  { background: var(--teal); border-color: var(--teal); color: #fff; }
 .company-pill-row { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; align-items:center;
   padding:8px 12px; background:var(--teal-bg); border-radius:var(--radius); border:1px solid #b0e4d4; }
 
@@ -256,6 +256,63 @@ body {
   cursor: pointer; white-space: nowrap;
 }
 .outreach-btn:hover { background: #e4e2f4; }
+
+/* ── Export checkbox ── */
+.export-checkbox-wrap {
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; padding: 2px 4px 0 0; cursor: pointer;
+}
+.export-checkbox {
+  width: 16px; height: 16px; cursor: pointer; accent-color: var(--teal);
+}
+.select-all-wrap {
+  display: flex; align-items: center; gap: 5px; cursor: pointer;
+  flex-shrink: 0; padding: 0 4px;
+}
+.select-all-wrap input[type="checkbox"] {
+  width: 15px; height: 15px; cursor: pointer; accent-color: var(--teal);
+}
+.btn-export {
+  background: var(--teal); color: #fff; border: none;
+  font-weight: 600; white-space: nowrap;
+}
+.btn-export:hover { background: #0d9488; }
+
+/* ── View toggle ── */
+.view-toggle { display:flex; gap:4px; margin-bottom:12px; }
+.view-toggle-btn {
+  flex:1; padding:7px 10px; font-size:12px; font-weight:600;
+  border:1px solid var(--border2); border-radius:var(--radius);
+  background:var(--surface); color:var(--muted); cursor:pointer;
+  transition:all 0.15s;
+}
+.view-toggle-btn.active { background:var(--purple); border-color:var(--purple); color:#fff; }
+
+/* ── Company group ── */
+.company-group { margin-bottom:10px; }
+.company-group-header {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  cursor:pointer; user-select:none; transition:border-color 0.15s;
+}
+.company-group-header:hover { border-color:var(--purple); }
+.company-group-header.has-a { border-left:3px solid var(--teal); }
+.company-group-header.is-target { background:var(--teal-bg); }
+.company-group-avatar {
+  width:36px; height:36px; border-radius:8px; flex-shrink:0;
+  background:var(--purple-bg); color:var(--purple);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:14px;
+}
+.company-group-name { font-weight:700; font-size:14px; }
+.company-group-meta { font-size:12px; color:var(--muted); margin-top:2px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.company-group-intel { font-size:11px; color:var(--faint); }
+.company-group-right { margin-left:auto; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.company-group-chevron { font-size:11px; color:var(--muted); transition:transform 0.2s; }
+.company-group-chevron.open { transform:rotate(90deg); }
+.company-group-contacts { padding:6px 0 4px 14px; display:flex; flex-direction:column; gap:6px; }
+.company-group-contacts .contact-card { margin-bottom:0; }
 
 /* ── Side drawer ── */
 #side-drawer-overlay {
@@ -383,6 +440,9 @@ body {
 }
 .pipeline-col:hover, .pipeline-col.active { border-color: var(--purple); }
 .pipeline-col.active { background: var(--purple-bg); }
+.pipeline-col.closed { opacity: 0.6; border-style: dashed; }
+.pipeline-col.closed:hover, .pipeline-col.closed.active { border-color: var(--red); }
+.pipeline-col.closed.active { background: var(--red-bg); opacity: 1; }
 .pipeline-num { font-size: 22px; font-weight: 700; line-height: 1; color: var(--text); }
 .pipeline-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
@@ -506,6 +566,9 @@ body {
 .onboarding-actions { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
 .onboarding-actions .btn-ghost { margin-right: auto; }
 .step-instructions { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; font-size: 13px; line-height: 1.8; }
+details > summary { outline: none; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] > summary span[style*="font-size:11px"] { transform: rotate(90deg); display: inline-block; }
 
 /* ── Grade reviewer modal ── */
 .modal-overlay {
@@ -552,6 +615,54 @@ select option { background: var(--surface); }
   .topnav { padding: 0 12px; }
   .tab-panel { padding: 16px 12px 48px; }
 }
+
+/* ── Mobile optimisation (< 768px) ── */
+@media (max-width: 767px) {
+  /* Drawer: full width slide-in on mobile */
+  #side-drawer {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.13);
+  }
+  /* Grade pills: horizontal scroll, no wrap */
+  .grade-pill-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+    margin-right: -12px;
+    padding-right: 12px;
+  }
+  .grade-pill-row::-webkit-scrollbar { display: none; }
+  /* Filter bar: search full width on its own row */
+  .filter-bar { flex-wrap: wrap; gap: 6px; }
+  .search-input { min-width: 100%; flex: none; }
+  .filter-select { flex: 1; min-width: 0; font-size: 13px; }
+  /* Bigger touch targets */
+  .btn { min-height: 38px; }
+  .btn-sm { min-height: 34px; padding: 6px 12px; }
+  .grade-pill { padding: 6px 14px; }
+  .nav-tab { padding: 0 10px; font-size: 13px; }
+  /* Drawer header: larger close button */
+  .drawer-close-btn { font-size: 20px; padding: 8px 10px; }
+  /* Drawer actions: wrap on small screens */
+  .drawer-actions { flex-wrap: wrap; gap: 6px; }
+  /* Contact card: full-width tap target */
+  .contact-card-header { padding: 14px 14px 10px; }
+  /* Stats row: 2-col already; make nums smaller */
+  .stat-num { font-size: 22px; }
+  /* Role input row */
+  .role-row { flex-wrap: wrap; }
+  .role-input { min-width: 100%; }
+  /* Nav: tighter */
+  .nav-brand { font-size: 15px; }
+  .nav-action { font-size: 12px; padding: 6px 10px; }
+  /* Onboarding card: full width */
+  .onboarding-card { padding: 20px 16px; margin: 0 8px; }
+}
 #tab-contacts {
   transition: padding-right 0.22s cubic-bezier(0.4,0,0.2,1);
 }
@@ -593,6 +704,9 @@ select option { background: var(--surface); }
 
 <!-- Resume modal -->
 <div id="resume-modal" class="resume-modal-overlay" style="display:none" onclick="if(event.target===this)closeResumeModal()"></div>
+
+<!-- Resume fact-checker modal -->
+<div id="checker-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:400;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)document.getElementById('checker-modal').style.display='none'"></div>
 
 <!-- Top nav -->
 <nav class="topnav">
@@ -639,15 +753,7 @@ select option { background: var(--surface); }
 // ─────────────────────────────────────────────
 // SECTION 1 · Constants & config
 // ─────────────────────────────────────────────
-const DEFAULT_TARGET_COS = [
-  'freshworks','chargebee','razorpay','postman','setu','hasura','darwinbox',
-  'sprinklr','clevertap','yellow.ai','exotel','juspay','sarvam','keka',
-  'leadsquared','zoho','gojek',
-  'atlassian','salesforce','mulesoft','workato','zapier','twilio','stripe',
-  'hubspot','shopify','replit','cohere','cursor','vercel','docusign',
-  'microsoft','google','amazon','adobe','servicenow','zendesk','monday',
-  'linear','retool','supabase'
-];
+const DEFAULT_TARGET_COS = []; // No built-in defaults — all companies set by user in Setup → Profile
 
 const LINKEDIN_COMPANY_IDS = {
   freshworks:'1626966', atlassian:'4809', chargebee:'2543029',
@@ -667,9 +773,11 @@ const LS = {
   skills:'wp_skills', onboarded:'wp_onboarded',
   apikey:'wp_apikey', targets:'wp_targets',
   ai_provider:'wp_ai_provider', ai_model:'wp_ai_model', ai_baseurl:'wp_ai_baseurl',
-  job_location:'wp_job_location', last_import:'wp_last_import',
+  job_location:'wp_job_location', job_loc_prefs:'wp_job_loc_prefs', last_import:'wp_last_import',
   resume:'wp_resume', custom_targets:'wp_custom_targets',
-  company_intel:'wp_company_intel'
+  company_intel:'wp_company_intel',
+  activity_log: 'wp_activity_log',
+  view_mode: 'wp_view_mode'
 };
 
 // AI provider defaults
@@ -699,35 +807,117 @@ const ACTIVE_APP_STATUSES = new Set([
 // can explore the tool before their LinkedIn archive arrives
 // ─────────────────────────────────────────────
 const SAMPLE_CONTACTS = [
+  // ── Microsoft (3 contacts · target) ──────────────────────────
+  { name:'Vikram Nair',    company:'Microsoft',   role:'Senior Product Manager',
+    grade:'A', score:82, warmthTier:'close-colleague', status:'Not contacted',
+    gradeReasons:['at target company','PM title','career overlap','messaged 6 times'], msgCount:6,
+    connectedOn:'2022-05-10', _sample:true },
+  { name:'Sanjana Kapoor', company:'Microsoft',   role:'Technical Recruiter',
+    grade:'A', score:65, warmthTier:'active-contact',  status:'Not contacted',
+    gradeReasons:['recruiter at target company','messaged 4 times'],                  msgCount:4,
+    connectedOn:'2023-02-14', _sample:true },
+  { name:'Amit Joshi',     company:'Microsoft',   role:'Engineering Manager',
+    grade:'B', score:38, warmthTier:'known',            status:'Not contacted',
+    gradeReasons:['at target company','connection recency'],                          msgCount:1,
+    connectedOn:'2023-09-01', _sample:true },
+
+  // ── Razorpay (2 contacts · target) ───────────────────────────
   { name:'Priya Sharma',   company:'Razorpay',    role:'Senior Product Manager',
     grade:'A', score:92, warmthTier:'close-colleague', status:'Not contacted',
     gradeReasons:['at target company','PM title','career overlap','messaged 8 times'], msgCount:8,
-    connectedOn:'2022-03-15', _sample:true },
+    connectedOn:'2022-03-15', _sample:true,
+    _interactions:[{ id:'si1', date:'2024-10-12T10:00:00Z', type:'linkedin',
+      role:'Senior PM', message:'Hi Priya, hope you\'re well! I\'d love to catch up about the PM team at Razorpay.',
+      response:'replied', note:'She said the team is actively hiring for a Group PM.' }] },
+  { name:'Tanvi Desai',    company:'Razorpay',    role:'Product Lead',
+    grade:'B', score:44, warmthTier:'known',            status:'Not contacted',
+    gradeReasons:['at target company','PM title'],                                    msgCount:1,
+    connectedOn:'2022-09-20', _sample:true },
+
+  // ── Stripe (2 contacts · target) ─────────────────────────────
   { name:'Karan Mehta',    company:'Stripe',      role:'Engineering Manager',
     grade:'A', score:74, warmthTier:'colleague',       status:'Not contacted',
     gradeReasons:['at target company','career overlap','connection recency'],          msgCount:3,
     connectedOn:'2023-01-20', _sample:true },
+  { name:'Preethi Nair',   company:'Stripe',      role:'Product Manager',
+    grade:'A', score:58, warmthTier:'active-contact',  status:'Not contacted',
+    gradeReasons:['at target company','PM title','connection recency'],                msgCount:2,
+    connectedOn:'2023-07-05', _sample:true },
+
+  // ── Freshworks (2 contacts · target) ─────────────────────────
   { name:'Ananya Iyer',    company:'Freshworks',  role:'Senior Talent Partner',
     grade:'A', score:68, warmthTier:'active-contact',  status:'Message sent',
     gradeReasons:['recruiter at target company','messaged 5 times'],                  msgCount:5,
     connectedOn:'2022-11-08', _sample:true },
+  { name:'Ravi Sundaram',  company:'Freshworks',  role:'Group Product Manager',
+    grade:'B', score:47, warmthTier:'known',            status:'Not contacted',
+    gradeReasons:['at target company','PM title'],                                    msgCount:1,
+    connectedOn:'2021-12-03', _sample:true },
+
+  // ── Atlassian (2 contacts) ────────────────────────────────────
   { name:'Rohan Gupta',    company:'Atlassian',   role:'Product Lead',
     grade:'B', score:48, warmthTier:'known',            status:'Not contacted',
     gradeReasons:['at target company','PM title'],                                    msgCount:1,
     connectedOn:'2021-06-12', _sample:true },
-  { name:'Sneha Patel',    company:'Chargebee',   role:'Head of Product',
-    grade:'B', score:42, warmthTier:'known',            status:'Replied',
-    gradeReasons:['at target company','senior role'],                                 msgCount:2,
-    connectedOn:'2023-05-30', _sample:true },
+  { name:'Neha Jain',      company:'Atlassian',   role:'Senior Product Manager',
+    grade:'B', score:40, warmthTier:'warm-unknown',     status:'Not contacted',
+    gradeReasons:['PM title','connection recency'],                                   msgCount:0,
+    connectedOn:'2023-04-18', _sample:true },
+
+  // ── Google (2 contacts) ───────────────────────────────────────
+  { name:'Meera Krishnan', company:'Google',      role:'Product Manager',
+    grade:'A', score:56, warmthTier:'active-contact',  status:'Not contacted',
+    gradeReasons:['PM title','company follows','messaged 3 times'],                   msgCount:3,
+    connectedOn:'2022-07-22', _sample:true },
   { name:'Aditya Nair',    company:'Google',      role:'Staff Software Engineer',
     grade:'B', score:32, warmthTier:'warm-unknown',     status:'Not contacted',
     gradeReasons:['following their company','connection recency'],                    msgCount:0,
     connectedOn:'2022-08-19', _sample:true },
+
+  // ── Postman (1 contact) ───────────────────────────────────────
+  { name:'Arjun Reddy',    company:'Postman',     role:'Senior Product Manager',
+    grade:'A', score:61, warmthTier:'colleague',       status:'Not contacted',
+    gradeReasons:['PM title','career overlap','messaged 3 times'],                    msgCount:3,
+    connectedOn:'2022-06-30', _sample:true },
+
+  // ── Chargebee (2 contacts) ────────────────────────────────────
+  { name:'Sneha Patel',    company:'Chargebee',   role:'Head of Product',
+    grade:'B', score:42, warmthTier:'known',            status:'Replied',
+    gradeReasons:['senior role','connection recency'],                                msgCount:2,
+    connectedOn:'2023-05-30', _sample:true },
+  { name:'Akash Kumar',    company:'Chargebee',   role:'Product Manager',
+    grade:'C', score:20, warmthTier:'cold',             status:'Not contacted',
+    gradeReasons:[],                                                                  msgCount:0,
+    connectedOn:'2020-11-15', _sample:true },
+
+  // ── Infosys (1 contact) ───────────────────────────────────────
   { name:'Deepika Rao',    company:'Infosys',     role:'HR Manager',
     grade:'C', score:12, warmthTier:'cold',             status:'Not contacted',
     gradeReasons:[],                                                                  msgCount:0,
     connectedOn:'2020-04-05', _sample:true }
 ];
+
+// Sample company intel — pre-loaded so company view chips and job match card
+// are visible to new users without needing an API key
+const SAMPLE_COMPANY_INTEL = {
+  'microsoft': {
+    glassdoorRating: 4.2, fetchedAt: new Date(Date.now() - 3*86400000).toISOString(),
+    _jobMatch: {
+      title: 'Senior Product Manager, Azure Developer Tools',
+      url: 'https://careers.microsoft.com/jobs/search',
+      location: 'Bangalore, India',
+      postedDate: new Date(Date.now() - 2*86400000).toISOString().split('T')[0],
+      summary: 'Owns roadmap for developer-facing Azure features; strong cross-functional leadership required.',
+      snippet: '5+ years PM experience in developer tools or platform products.',
+      foundAt: new Date(Date.now() - 1*86400000).toISOString(),
+      fromCareer: false
+    }
+  },
+  'razorpay':   { glassdoorRating: 4.1, fetchedAt: new Date(Date.now() - 7*86400000).toISOString() },
+  'stripe':     { glassdoorRating: 4.5, fetchedAt: new Date(Date.now() - 5*86400000).toISOString() },
+  'freshworks': { glassdoorRating: 3.9, fetchedAt: new Date(Date.now() - 4*86400000).toISOString() },
+  'google':     { glassdoorRating: 4.4, fetchedAt: new Date(Date.now() - 6*86400000).toISOString() }
+};
 
 function isSampleMode() {
   return state.contacts.length > 0 && state.contacts.every(c => c._sample);
@@ -735,6 +925,11 @@ function isSampleMode() {
 
 function clearSampleData() {
   if (isSampleMode()) state.contacts = [];
+}
+
+function dismissSampleBanner() {
+  sampleBannerDismissed = true;
+  renderContactsTab(); // re-render to show compact chip
 }
 
 // ─────────────────────────────────────────────
@@ -750,16 +945,22 @@ let state = {
   COMPANY_FOLLOWS: {},
   ENDORSERS: [],
   SKILLS: [],
-  TARGET_COS: [...DEFAULT_TARGET_COS],
-  COMPANY_INTEL: {}  // shared cache: normalised-company-name → intel object
+  TARGET_COS: [],
+  COMPANY_INTEL: {},  // shared cache: normalised-company-name → intel object
+  ACTIVITY_LOG: []    // timestamped events: {type, date, contactIdx?, meta?}
 };
 
 let activeTab = 'contacts';
 let setupSubTab = 'import';
+let sampleBannerDismissed = false; // session-only — resets on reload so new users always see it
 let contactFilters = { grade:'AB', status:'', relationship:'', search:'', targetOnly:false, company:'' };
 let contactPage = 1;
 const CONTACTS_PER_PAGE = 50;
 let expandedCards = new Set();
+let selectedForExport = new Set(); // session-only checkbox state
+let contactViewMode = (localStorage.getItem('wp_view_mode') || 'companies'); // 'contacts' | 'companies'
+let collapsedCompanies = new Set(); // companies collapsed in company view
+let companyViewInitialized = false; // when false, next company render collapses all groups
 let importBanner = null;
 let onboardStep = 1;
 
@@ -767,6 +968,8 @@ let onboardStep = 1;
 // Tab switching
 // ─────────────────────────────────────────────
 function switchTab(tab) {
+  // Close side drawer when navigating away from contacts
+  if (tab !== 'contacts' && sideDrawerIdx !== null) closeSideDrawer();
   activeTab = tab;
   document.querySelectorAll('.nav-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
@@ -780,9 +983,16 @@ function switchTab(tab) {
 }
 
 function updateNavCounts() {
-  const aCount = state.contacts.filter(c => c.grade === 'A').length;
-  const appCount = state.applications.filter(a => ACTIVE_APP_STATUSES.has(a.status)).length;
-  document.getElementById('nav-a-count').textContent = aCount;
+  const aCount   = state.contacts.filter(c => c.grade === 'A').length;
+  const appCount = state.applications.length;
+  const aCountEl = document.getElementById('nav-a-count');
+  if (aCountEl) {
+    if (isSampleMode()) {
+      aCountEl.innerHTML = `<span style="font-size:9px;background:#f59e0b;color:#fff;border-radius:6px;padding:1px 5px;font-weight:700;letter-spacing:.3px;vertical-align:middle">DEMO</span>`;
+    } else {
+      aCountEl.textContent = aCount;
+    }
+  }
   document.getElementById('nav-app-count').textContent = appCount;
 }
 
@@ -798,7 +1008,8 @@ const PIPELINE_STAGES = [
   { label: 'Screening',   statuses: ['Screening'] },
   { label: 'Interviewing',statuses: ['Round 1','Round 2','Round 3'] },
   { label: 'Final',       statuses: ['Final round'] },
-  { label: 'Offer',       statuses: ['Offer received','Offer accepted'] }
+  { label: 'Offer',       statuses: ['Offer received','Offer accepted'] },
+  { label: 'Closed',      statuses: ['Rejected','Withdrawn','On hold'] }
 ];
 
 function renderApplicationsTab() {
@@ -809,10 +1020,11 @@ function renderApplicationsTab() {
   const pipelineHtml = PIPELINE_STAGES.map(stage => {
     const count = apps.filter(a => stage.statuses.includes(a.status)).length;
     const isActive = stage.statuses.some(s => appPipelineFilter === s);
-    return `<div class="pipeline-col ${isActive ? 'active' : ''}"
+    const isClosed = stage.label === 'Closed';
+    return `<div class="pipeline-col ${isActive ? 'active' : ''} ${isClosed ? 'closed' : ''}"
       onclick="appPipelineFilter='${isActive ? '' : stage.statuses[0]}'; renderApplicationsTab()">
       <div class="pipeline-num">${count}</div>
-      <div class="pipeline-label">${stage.label}</div>
+      <div class="pipeline-label">${isClosed ? '✕ Closed' : stage.label}</div>
     </div>`;
   }).join('');
 
@@ -896,11 +1108,7 @@ function renderAppCard(app, idx) {
         <button class="btn btn-red btn-sm" onclick="removeApp(${idx})">Remove</button>
         ${app.company ? `<button class="btn btn-ghost btn-sm" onclick="loadAppCompanyIntel(${idx})" id="app-intel-btn-${idx}">Load intel</button>` : ''}
       </div>
-      ${(() => { const ci = app.company ? state.COMPANY_INTEL[coKey(app.company)] : null; return ci ? `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-        ${ci.glassdoorRating ? `<span class="intel-chip">Glassdoor ${ci.glassdoorRating} ★</span>` : ''}
-        ${ci.salaryRange     ? `<span class="intel-chip">${h(ci.salaryRange)}</span>` : ''}
-        ${ci.reviewSentiment ? `<span class="intel-chip" title="${h(ci.reviewSentiment)}">Reviews ℹ</span>` : ''}
-      </div>` : ''; })()}
+      ${(() => { const ci = app.company ? state.COMPANY_INTEL[coKey(app.company)] : null; return ci?.glassdoorRating ? `<div style="margin-top:8px"><span class="intel-chip">Glassdoor ${ci.glassdoorRating} ★</span></div>` : ''; })()}
     </div>
     ${feedbackHtml ? `<div class="feedback-log">${feedbackHtml}</div>` : ''}
   </div>`;
@@ -1080,10 +1288,9 @@ async function loadAppCompanyIntel(idx) {
   const btn = document.getElementById(`app-intel-btn-${idx}`);
   if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
 
-  const prompt = `What do you know about "${app.company}" as a place to work?
-Return ONLY a JSON object:
-{"glassdoorRating":number_or_null,"salaryRange":"e.g. ₹35-55L for Staff PM or null","reviewSentiment":"one sentence or null"}
-No other text. Use null for unknown fields.`;
+  const prompt = `What is the Glassdoor overall company rating for "${app.company}"?
+Return ONLY a JSON object: {"glassdoorRating":number_or_null}
+Use null if unknown. No other text.`;
 
   try {
     let text = '';
@@ -1239,23 +1446,31 @@ function renderSetupTab() {
 
   const scoringPreview = hasArchive ? `
     <div class="setup-section">
-      <div class="setup-section-title">Scoring preview</div>
-      <div class="scoring-preview">
-        <div class="scoring-row"><span>Total contacts</span><strong>${state.contacts.length}</strong></div>
-        <div class="scoring-row"><span>Grade A</span><strong style="color:var(--teal)">${aCount} (${state.contacts.length?Math.round(aCount/state.contacts.length*100):0}%)</strong></div>
-        <div class="scoring-row"><span>Grade B</span><strong style="color:var(--amber)">${bCount}</strong></div>
-        <div class="scoring-row"><span>Signals active</span>
-          <span>
-            ${Object.keys(state.MSG_LOOKUP).length  ? '✓ Messages' : '— Messages'}
-            ${state.POSITIONS_DATA.length            ? ' · ✓ Positions' : ''}
-            ${state.RECOMMENDERS.length              ? ' · ✓ Recommendations' : ''}
-          </span>
+      <details>
+        <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;justify-content:space-between">
+          <div class="setup-section-title" style="margin:0">
+            Scoring summary
+            <span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px">${state.contacts.length} contacts · ${aCount} Grade A · ${bCount} Grade B</span>
+          </div>
+          <span style="font-size:11px;color:var(--purple);font-weight:400">Details ▾</span>
+        </summary>
+        <div class="scoring-preview" style="margin-top:10px">
+          <div class="scoring-row"><span>Total contacts</span><strong>${state.contacts.length}</strong></div>
+          <div class="scoring-row"><span>Grade A</span><strong style="color:var(--teal)">${aCount} (${state.contacts.length?Math.round(aCount/state.contacts.length*100):0}%)</strong></div>
+          <div class="scoring-row"><span>Grade B</span><strong style="color:var(--amber)">${bCount}</strong></div>
+          <div class="scoring-row"><span>Signals active</span>
+            <span>
+              ${Object.keys(state.MSG_LOOKUP).length  ? '✓ Messages' : '— Messages'}
+              ${state.POSITIONS_DATA.length            ? ' · ✓ Positions' : ''}
+              ${state.RECOMMENDERS.length              ? ' · ✓ Recommendations' : ''}
+            </span>
+          </div>
+          ${top5.length ? `<div class="scoring-row" style="flex-direction:column;align-items:flex-start;gap:6px;padding-top:10px">
+            <strong style="font-size:12px;color:var(--muted)">TOP 5 BY SCORE</strong>
+            ${top5.map(c=>`<div style="font-size:13px">${h(c.name)} <span style="color:var(--muted)">· ${h(c.company||'—')} · score ${c.score||0} · ${h(c.warmthTier||'')}</span></div>`).join('')}
+          </div>` : ''}
         </div>
-        ${top5.length ? `<div class="scoring-row" style="flex-direction:column;align-items:flex-start;gap:6px;padding-top:10px">
-          <strong style="font-size:12px;color:var(--muted)">TOP 5 BY SCORE</strong>
-          ${top5.map(c=>`<div style="font-size:13px">${h(c.name)} <span style="color:var(--muted)">· ${h(c.company||'—')} · score ${c.score||0} · ${h(c.warmthTier||'')}</span></div>`).join('')}
-        </div>` : ''}
-      </div>
+      </details>
     </div>` : '';
 
   el.innerHTML = `
@@ -1280,6 +1495,12 @@ function renderSetupTab() {
           <input class="form-input" id="sp-currentco" value="${h(p.currentCompany||'')}" placeholder="e.g. Acme Corp"></div>
         <div class="form-field"><label class="form-label">Location</label>
           <input class="form-input" id="sp-location" value="${h(p.location||'')}" placeholder="e.g. Bengaluru"></div>
+        <div class="form-field"><label class="form-label">Email <span style="color:var(--faint)">(appears on resume)</span></label>
+          <input class="form-input" id="sp-email" value="${h(p.email||'')}" placeholder="your@email.com"></div>
+        <div class="form-field"><label class="form-label">Phone <span style="color:var(--faint)">(appears on resume)</span></label>
+          <input class="form-input" id="sp-phone" value="${h(p.phone||'')}" placeholder="+91 98765 43210"></div>
+        <div class="form-field"><label class="form-label">LinkedIn URL <span style="color:var(--faint)">(appears on resume)</span></label>
+          <input class="form-input" id="sp-linkedin" value="${h(p.linkedinUrl||'')}" placeholder="linkedin.com/in/yourname"></div>
         <div class="form-field"><label class="form-label">Company type preference</label>
           <select class="form-select" id="sp-cotype">
             <option value=""    ${!p.companyType?'selected':''}>Any</option>
@@ -1310,24 +1531,19 @@ function renderSetupTab() {
     <!-- Target companies -->
     <div class="setup-section">
       <div class="setup-section-title">Target companies <span style="font-weight:400;font-size:13px;color:var(--muted)">(drives scoring — contacts here rank higher)</span></div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:6px">
-        Your active target list: <strong>${state.TARGET_COS.filter(t => !DEFAULT_TARGET_COS.includes(t)).length} custom</strong> + ${DEFAULT_TARGET_COS.length} defaults.
-        Contacts at these companies score +40 pts. Your current company is excluded automatically.
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">
+        ${state.TARGET_COS.length === 0
+          ? `<span style="color:var(--amber);font-weight:600">⚠ No target companies set yet.</span> Add at least a few below — contacts at these companies score +40 pts and appear in the 🎯 filter.`
+          : `<strong>${state.TARGET_COS.length}</strong> target ${state.TARGET_COS.length === 1 ? 'company' : 'companies'} set. Contacts here score +40 pts. Your current company is excluded automatically.`
+        }
       </div>
-      <details style="margin-bottom:12px">
-        <summary style="font-size:12px;color:var(--purple);cursor:pointer;user-select:none">View ${DEFAULT_TARGET_COS.length} built-in default companies ▸</summary>
-        <div style="margin-top:8px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border);font-size:12px;color:var(--muted);line-height:2">
-          ${DEFAULT_TARGET_COS.map(t => `<span style="display:inline-block;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:1px 9px;margin:2px">${h(t)}</span>`).join(' ')}
-          <div style="margin-top:8px;font-size:11px;color:var(--faint)">These are pre-loaded. Add your own below to supplement them. Remove a default by adding it to a future "exclude" list — not yet supported, but planned.</div>
-        </div>
-      </details>
       <div class="form-field full" style="margin-bottom:12px">
-        <label class="form-label">Your custom target companies <span style="color:var(--faint)">(one per line — company name or partial match)</span></label>
-        <textarea class="form-textarea" id="sp-custom-targets" style="min-height:100px;font-size:13px"
-          placeholder="Flipkart&#10;Meesho&#10;PhonePe&#10;CRED&#10;…">${h(getCustomTargets().join('\n'))}</textarea>
+        <label class="form-label">Target companies <span style="color:var(--faint)">(one per line — company name or partial match, case-insensitive)</span></label>
+        <textarea class="form-textarea" id="sp-custom-targets" style="min-height:110px;font-size:13px"
+          placeholder="Stripe&#10;Notion&#10;Linear&#10;Atlassian&#10;…">${h(state.TARGET_COS.join('\n'))}</textarea>
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" onclick="saveCustomTargetsForm()">Save targets &amp; re-score</button>
+        <button class="btn btn-primary btn-sm" onclick="saveCustomTargetsForm()">Save &amp; re-score</button>
         <button class="btn btn-secondary btn-sm" onclick="suggestTargetCompanies()" id="suggest-co-btn">✨ Suggest companies for me</button>
         <span id="suggest-co-status" style="font-size:12px;color:var(--muted)"></span>
       </div>
@@ -1356,8 +1572,20 @@ function renderSetupTab() {
         <div class="form-field full" id="sp-baseurl-row" style="${(localStorage.getItem(LS.ai_provider)||'anthropic')==='anthropic'||localStorage.getItem(LS.ai_provider)==='openai'?'display:none':''}">
           <label class="form-label">Base URL <span style="color:var(--faint)">(Ollama default: http://localhost:11434)</span></label>
           <input class="form-input" id="sp-ai-baseurl" value="${h(localStorage.getItem(LS.ai_baseurl)||'')}" placeholder="http://localhost:11434"></div>
-        <div class="form-field full"><label class="form-label">Job search location <span style="color:var(--faint)">(used in LinkedIn/Indeed/Naukri links)</span></label>
-          <input class="form-input" id="sp-job-location" value="${h(localStorage.getItem(LS.job_location)||'India')}" placeholder="e.g. India, Bengaluru, Singapore"></div>
+        <div class="form-field full">
+          <label class="form-label">Location preferences <span style="color:var(--faint)">(ranked 1 → 2 → 3 — job matching uses this order)</span></label>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+            ${['1st choice','2nd choice','3rd choice'].map((label, i) => {
+              const prefs = (() => { try { return JSON.parse(localStorage.getItem(LS.job_loc_prefs) || '[]'); } catch(e){ return []; } })();
+              const val = prefs[i] || (i === 0 ? (localStorage.getItem(LS.job_location) || '') : '');
+              return `<div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:12px;color:var(--muted);width:72px;flex-shrink:0">${label}</span>
+                <input class="form-input" id="sp-loc-pref-${i}" value="${h(val)}" placeholder="${['e.g. Bengaluru','e.g. Remote','e.g. India / Open'][i]}" style="flex:1">
+              </div>`;
+            }).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--faint);margin-top:5px">When a company has multiple open roles, jobs matching preference 1 are shown first.</div>
+        </div>
       </div>
       <div style="margin-top:14px">
         <button class="btn btn-primary" onclick="saveAISettings()">Save AI settings</button>
@@ -1390,14 +1618,21 @@ function renderSetupTab() {
 
     <!-- Launcher instructions -->
     <div class="setup-section">
-      <div class="setup-section-title">Running WarmPath with AI features</div>
-      <div class="step-instructions">
-        AI message generation requires a local server to avoid CORS errors.<br><br>
-        <strong>Mac:</strong> Double-click <code>launch.command</code> in the WarmPath folder.<br>
-        On first run macOS may block it — open Terminal, type <code>chmod +x </code> (with a space), drag the file in, press Enter.<br><br>
-        <strong>Windows:</strong> Double-click <code>launch.bat</code><br><br>
-        Then open <a href="http://localhost:8080/warmpath.html" target="_blank" style="color:var(--purple)">http://localhost:8080/warmpath.html</a>
-      </div>
+      <details>
+        <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px">
+          <div class="setup-section-title" style="margin:0;display:flex;align-items:center;gap:6px">
+            Running WarmPath with AI features
+            <span style="font-size:11px;font-weight:400;color:var(--muted)">(click to expand)</span>
+          </div>
+        </summary>
+        <div class="step-instructions" style="margin-top:10px">
+          AI message generation requires a local server to avoid CORS errors.<br><br>
+          <strong>Mac:</strong> Double-click <code>launch.command</code> in the WarmPath folder.<br>
+          On first run macOS may block it — open Terminal, type <code>chmod +x </code> (with a space), drag the file in, press Enter.<br><br>
+          <strong>Windows:</strong> Double-click <code>launch.bat</code><br><br>
+          Then open <a href="http://localhost:8080/index.html" target="_blank" style="color:var(--purple)">http://localhost:8080/index.html</a>
+        </div>
+      </details>
     </div>
     ` : ''}
 
@@ -1417,6 +1652,19 @@ function renderSetupTab() {
         return `<div style="font-size:12px;color:var(--muted);margin-bottom:10px">✓ Last imported <strong>${dateStr}</strong> (${daysAgo} day${daysAgo===1?'':'s'} ago)</div>`;
       })()}
 
+      <details ${!localStorage.getItem(LS.last_import) ? 'open' : ''} style="margin-bottom:14px">
+        <summary style="cursor:pointer;user-select:none;font-size:13px;font-weight:600;color:var(--purple);list-style:none;display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+          <span style="font-size:11px">▶</span> How to export your LinkedIn archive
+          ${localStorage.getItem(LS.last_import) ? `<span style="font-weight:400;color:var(--muted);margin-left:6px;font-size:12px">(already imported — click to expand)</span>` : `<span style="font-weight:400;color:var(--muted);margin-left:6px;font-size:12px">← do this first</span>`}
+        </summary>
+        <div class="step-instructions" style="margin-top:8px;border-radius:0 0 var(--radius) var(--radius)">
+          Step 1: LinkedIn → <strong>Me</strong> → Settings &amp; Privacy<br>
+          Step 2: Data Privacy → <strong>Get a copy of your data</strong><br>
+          Step 3: Select <strong>"Download larger data archive"</strong> → Request archive<br>
+          Step 4: Wait for email (10–30 min) → Download the <strong>.zip</strong> file
+        </div>
+      </details>
+
       <div class="dropzone" id="zip-dropzone"
         onclick="document.getElementById('zip-file-input').click()"
         ondragover="event.preventDefault();this.classList.add('dragover')"
@@ -1428,36 +1676,27 @@ function renderSetupTab() {
       <input type="file" id="zip-file-input" accept=".zip" style="display:none" onchange="handleZipInput(this)">
       <div id="zip-status" style="margin-bottom:16px"></div>
 
-      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Or upload individual files:</div>
-      <div class="file-upload-list">
-        ${ARCHIVE_FILES.map(f => { const fs = getFileStatus(f.key); return `
-          <div class="file-upload-row">
-            <span class="file-status ${fs}" id="fstat-${f.key}">
-              ${fs === 'loaded' ? '✓ Loaded' : fs === 'failed' ? '✗ Failed' : '○ Not uploaded'}
-            </span>
-            <span class="file-name">${h(f.name)}${f.required ? ' <span style="color:var(--coral)">*</span>' : ''}</span>
-            <span class="file-desc">${h(f.desc)}</span>
-            <label class="btn btn-secondary btn-sm file-input-btn">
-              Upload
-              <input type="file" accept=".csv" style="display:none" onchange="handleSingleFile('${f.key}', this)">
-            </label>
-          </div>`; }).join('')}
-      </div>
-
-      <div style="margin-top:10px">
-        <div class="collapsible-header" onclick="toggleCollapsible('archive-howto-body')" style="border-top:1px solid var(--border);padding-top:12px">
-          How to download your LinkedIn archive
-          <span id="archive-howto-arrow">▶</span>
+      <details style="margin-top:4px">
+        <summary style="cursor:pointer;user-select:none;font-size:12px;color:var(--muted);list-style:none;display:flex;align-items:center;gap:5px;padding:6px 0">
+          <span style="font-size:10px;color:var(--purple)">▶</span>
+          Or upload individual files&nbsp;
+          <span style="color:var(--faint)">(${ARCHIVE_FILES.filter(f => getFileStatus(f.key) === 'loaded').length}/${ARCHIVE_FILES.length} loaded)</span>
+        </summary>
+        <div class="file-upload-list" style="margin-top:6px">
+          ${ARCHIVE_FILES.map(f => { const fs = getFileStatus(f.key); return `
+            <div class="file-upload-row">
+              <span class="file-status ${fs}" id="fstat-${f.key}">
+                ${fs === 'loaded' ? '✓ Loaded' : fs === 'failed' ? '✗ Failed' : '○ Not uploaded'}
+              </span>
+              <span class="file-name">${h(f.name)}${f.required ? ' <span style="color:var(--coral)">*</span>' : ''}</span>
+              <span class="file-desc">${h(f.desc)}</span>
+              <label class="btn btn-secondary btn-sm file-input-btn">
+                Upload
+                <input type="file" accept=".csv" style="display:none" onchange="handleSingleFile('${f.key}', this)">
+              </label>
+            </div>`; }).join('')}
         </div>
-        <div class="collapsible-body" id="archive-howto-body">
-          <div class="step-instructions">
-            Step 1: LinkedIn → Me → Settings &amp; Privacy<br>
-            Step 2: Data Privacy → Get a copy of your data<br>
-            Step 3: Select "Download larger data archive" → Request archive<br>
-            Step 4: Wait for email (10–30 min) → Download .zip
-          </div>
-        </div>
-      </div>
+      </details>
     </div>
 
     ${scoringPreview}
@@ -1491,6 +1730,9 @@ function saveProfileForm() {
   state.profile.currentLevel  = document.getElementById('sp-level')?.value?.trim()     || '';
   state.profile.currentCompany= document.getElementById('sp-currentco')?.value?.trim() || '';
   state.profile.location      = document.getElementById('sp-location')?.value?.trim()  || '';
+  state.profile.email         = document.getElementById('sp-email')?.value?.trim()     || '';
+  state.profile.phone         = document.getElementById('sp-phone')?.value?.trim()     || '';
+  state.profile.linkedinUrl   = document.getElementById('sp-linkedin')?.value?.trim()  || '';
   state.profile.companyType   = document.getElementById('sp-cotype')?.value           || '';
   state.profile.bg            = document.getElementById('sp-bg')?.value?.trim()        || '';
   state.profile.target        = document.getElementById('sp-target')?.value?.trim()    || '';
@@ -1592,8 +1834,7 @@ function addSuggestedCompanies() {
   const cbs = document.querySelectorAll('.co-suggestion-cb:checked');
   const newCos = Array.from(cbs).map(cb => cb.value.toLowerCase().trim()).filter(Boolean);
   if (!newCos.length) return;
-  const existing = getCustomTargets();
-  const merged = [...new Set([...existing, ...newCos])];
+  const merged = [...new Set([...state.TARGET_COS, ...newCos])];
   saveCustomTargets(merged);
   // Update textarea
   const ta = document.getElementById('sp-custom-targets');
@@ -1611,13 +1852,16 @@ function saveAISettings() {
   const model    = document.getElementById('sp-ai-model')?.value?.trim() || '';
   const key      = document.getElementById('sp-apikey')?.value?.trim() || '';
   const baseurl  = document.getElementById('sp-ai-baseurl')?.value?.trim() || '';
-  const location = document.getElementById('sp-job-location')?.value?.trim() || 'India';
   localStorage.setItem(LS.ai_provider, provider);
   if (model)   localStorage.setItem(LS.ai_model, model);
   else         localStorage.removeItem(LS.ai_model);
   if (key)     setApiKey(key);
   if (baseurl) localStorage.setItem(LS.ai_baseurl, baseurl);
-  localStorage.setItem(LS.job_location, location);
+  // Save ranked location preferences
+  const locPrefs = [0,1,2].map(i => (document.getElementById(`sp-loc-pref-${i}`)?.value?.trim() || '')).filter(Boolean);
+  localStorage.setItem(LS.job_loc_prefs, JSON.stringify(locPrefs));
+  // Keep legacy job_location as first preference for LinkedIn URL construction
+  if (locPrefs[0]) localStorage.setItem(LS.job_location, locPrefs[0]);
   const el = document.getElementById('ai-save-status');
   if (el) { el.textContent = 'Saved ✓'; setTimeout(() => { el.textContent = ''; }, 2000); }
 }
@@ -1807,7 +2051,7 @@ function showOnboarding(step) {
       </div>
       <div class="onboarding-actions">
         <button class="btn btn-ghost" onclick="showOnboarding(1)">← Back</button>
-        <button class="btn btn-ghost" onclick="showOnboarding(3)">Skip — do manually later</button>
+        <button class="btn btn-ghost" onclick="showOnboarding(3)">Skip for now — import anytime from Setup</button>
         <button class="btn btn-primary" onclick="showOnboarding(3)">Continue →</button>
       </div>`;
   } else if (step === 3) {
@@ -1825,10 +2069,19 @@ function showOnboarding(step) {
         <div class="form-field full"><label class="form-label">Target role type</label>
           <input class="form-input" id="ob-target" value="${h(p.target||'')}" placeholder="e.g. Staff PM at B2B SaaS"></div>
         <div class="form-field full">
-          <label class="form-label">Anthropic API key <span style="color:var(--faint)">(optional — for AI-generated messages)</span></label>
+          <label class="form-label">Anthropic API key <span style="color:var(--faint)">(optional)</span></label>
           <input class="form-input" type="password" id="ob-apikey" value="${h(getApiKey())}" placeholder="sk-ant-…">
-          <div style="font-size:12px;color:var(--muted);margin-top:5px">
-            Get a key at <a href="https://console.anthropic.com/" target="_blank" rel="noopener" style="color:var(--purple)">console.anthropic.com</a> → API Keys → Create key. ~$0.003/message. Without a key, built-in templates are used instead.
+          <div style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5">
+            Get a key at <a href="https://console.anthropic.com/" target="_blank" rel="noopener" style="color:var(--purple)">console.anthropic.com</a> → API Keys → Create key. ~$0.003 per message, no subscription needed.<br>
+            <strong style="color:var(--text)">Without a key</strong>, WarmPath uses built-in templates — still useful, just not personalised.
+          </div>
+        </div>
+        <div class="form-field full">
+          <div style="padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--muted);line-height:1.6">
+            <strong style="color:var(--text)">⚡ One more step to enable AI:</strong>
+            After setup, double-click <code>launch.command</code> (Mac) or <code>launch.bat</code> (Windows) in the WarmPath folder, then open
+            <code>http://localhost:8080/index.html</code>. This runs a tiny local server that lets the app talk to the AI API securely.
+            <br><span style="color:var(--faint)">Opening index.html directly (file://) works for everything except AI generation.</span>
           </div>
         </div>
       </div>
@@ -1848,7 +2101,7 @@ function showOnboarding(step) {
       <div class="step-instructions">
         <strong>To enable AI message generation:</strong><br>
         Double-click <code>launch.command</code> (Mac) or <code>launch.bat</code> (Windows) in the WarmPath folder.<br>
-        Then visit <strong>http://localhost:8080/warmpath.html</strong><br><br>
+        Then visit <strong>http://localhost:8080/index.html</strong><br><br>
         Opening the file directly (file://) works for everything except AI generation.
       </div>
       <div class="onboarding-actions">
@@ -1987,6 +2240,42 @@ function renderContactsTab() {
   ).length;
 
   el.innerHTML = `
+    ${isSampleMode() ? (sampleBannerDismissed ? `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 14px;background:#fef3c7;border:1px solid #f59e0b;border-radius:20px;margin-bottom:14px;width:fit-content">
+        <span style="font-size:13px;color:#78350f;font-weight:600">👋 Sample data</span>
+        <span style="font-size:12px;color:#92400e">— not your real network</span>
+        <button class="btn btn-sm" style="background:#92400e;color:white;border:none;font-size:11px;padding:2px 10px;border-radius:12px;font-weight:600"
+          onclick="switchTab('setup');switchSetupTab('import')">Import my data →</button>
+      </div>
+    ` : `
+      <div style="background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:2px solid #f59e0b;border-radius:12px;padding:18px 20px;margin-bottom:20px">
+        <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+          <div style="font-size:28px;line-height:1;flex-shrink:0">👋</div>
+          <div style="flex:1;min-width:220px">
+            <div style="font-weight:700;font-size:15px;color:#92400e;margin-bottom:5px">You're viewing sample data</div>
+            <div style="font-size:13px;color:#78350f;line-height:1.6">
+              These sample contacts are fictional — here so you can explore how WarmPath works
+              <em>before</em> importing your own data. Cards, drawer, scoring, and outreach all work the same way with your real network.
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0;align-items:flex-end">
+            <button class="btn btn-sm" style="background:#92400e;color:white;border:none;font-weight:700;padding:8px 16px;white-space:nowrap"
+              onclick="switchTab('setup');switchSetupTab('import')">
+              Import my LinkedIn data →
+            </button>
+            <button class="btn btn-ghost btn-sm" style="color:#92400e;font-size:12px;opacity:0.75"
+              onclick="dismissSampleBanner()">
+              Keep exploring for now
+            </button>
+          </div>
+        </div>
+      </div>
+    `) : ''}
+    ${renderActivityStrip()}
+    ${!isSampleMode() && state.contacts.length > 0 && state.TARGET_COS.length === 0 ? `
+      <div class="banner banner-warning" style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
+        <span style="flex:1">🎯 <strong>No target companies set.</strong> Add them in <a href="#" onclick="switchTab('setup'); setupSubTab='profile'; renderSetupTab(); return false" style="color:var(--amber);font-weight:600">Setup → Profile</a> to unlock the 🎯 filter and boost scoring for the right contacts.</span>
+      </div>` : ''}
     <div class="filter-bar" id="contacts-filter-bar">
       <input class="search-input" id="contact-search" type="text"
         placeholder="Search by name, company, role…"
@@ -2000,7 +2289,18 @@ function renderContactsTab() {
         <option value="">All relationships</option>
         ${relationships.map(r => `<option value="${h(r)}" ${contactFilters.relationship===r?'selected':''}>${h(r)}</option>`).join('')}
       </select>
+      <label class="select-all-wrap" id="select-all-label" title="Select all visible contacts for export">
+        <input type="checkbox" id="select-all-export" onchange="toggleSelectAll(this.checked)">
+        <span style="font-size:12px;color:var(--muted);white-space:nowrap">Select all</span>
+      </label>
+      <button class="btn btn-export btn-sm" id="export-btn" onclick="exportSelectedContacts()" style="display:none">
+        📤 Export
+      </button>
       <span class="filter-count" id="filter-count"></span>
+    </div>
+    <div class="view-toggle">
+      <button class="view-toggle-btn ${contactViewMode==='contacts'?'active':''}" onclick="setViewMode('contacts')">👤 By contact</button>
+      <button class="view-toggle-btn ${contactViewMode==='companies'?'active':''}" onclick="setViewMode('companies')">🏢 By company</button>
     </div>
     <div class="grade-pill-row" id="grade-pill-row">
       <span class="grade-pill-label">Show:</span>
@@ -2009,17 +2309,26 @@ function renderContactsTab() {
       <button class="grade-pill pill-b  ${contactFilters.grade==='B' ?'active':''}"  onclick="setGradeFilter('B')">★ Lukewarm only (B)</button>
       <button class="grade-pill pill-c  ${contactFilters.grade==='C' ?'active':''}"  onclick="setGradeFilter('C')">❄ Cold (C)</button>
       <button class="grade-pill pill-all ${contactFilters.grade==='' ?'active':''}"  onclick="setGradeFilter('')">All contacts</button>
+      ${contactViewMode !== 'companies' ? `
       <span style="width:1px;height:20px;background:var(--border2);margin:0 4px;flex-shrink:0"></span>
-      <button class="grade-pill pill-target ${contactFilters.targetOnly?'active':''}" onclick="setTargetFilter()">🎯 Target cos</button>
+      <button class="grade-pill pill-target ${contactFilters.targetOnly?'active':''}" onclick="setTargetFilter()">🎯 Target cos</button>` : ''}
     </div>
     <div class="company-pill-row" id="company-pill-row" style="display:none"></div>
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${gradeA}</div><div class="stat-label">Warm (A)</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--amber)">${gradeB}</div><div class="stat-label">Lukewarm (B)</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--purple)">${atTarget}</div><div class="stat-label">At target cos</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--coral)">${notYetContacted}</div><div class="stat-label">Not yet contacted</div></div>
+      ${isSampleMode() ? `
+        <div class="stat-card" style="grid-column:1/-1;flex:unset;background:var(--surface2);border-style:dashed">
+          <div style="font-size:12px;color:var(--muted);text-align:center">
+            Stats will show your real network once you import your LinkedIn archive.
+            <br><span style="color:var(--faint);font-size:11px">Sample: ${gradeA} warm · ${gradeB} lukewarm · ${atTarget} at target cos</span>
+          </div>
+        </div>
+      ` : `
+        <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${gradeA}</div><div class="stat-label">Warm (A)</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--amber)">${gradeB}</div><div class="stat-label">Lukewarm (B)</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--purple)">${atTarget}</div><div class="stat-label">At target cos</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--coral)">${notYetContacted}</div><div class="stat-label">Not yet contacted</div></div>
+      `}
     </div>
-    ${contacts.length > 0 ? `<div style="margin-bottom:14px"><button class="btn btn-amber btn-sm" onclick="openGradeReviewer()">✦ Smart grade review</button></div>` : ''}
     <div class="add-form-wrap">
       <button class="add-form-toggle" onclick="toggleAddForm()">
         <span id="add-form-arrow">▶</span> Add contact manually
@@ -2058,6 +2367,13 @@ function renderContactsTab() {
     <div id="contacts-list"></div>`;
 
   renderContactsList();
+
+  // Demo mode: auto-open the first Grade A contact so new users immediately
+  // see the split-view and understand what the tool does
+  if (isSampleMode() && sideDrawerIdx === null) {
+    const firstA = state.contacts.findIndex(c => c.grade === 'A');
+    if (firstA >= 0) setTimeout(() => openSideDrawer(firstA), 250);
+  }
 }
 
 function renderContactsList() {
@@ -2116,18 +2432,7 @@ function renderContactsList() {
     }
   }
 
-  // Sample data banner — shown until real data is uploaded
   let html = '';
-  if (isSampleMode()) {
-    html += `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-        padding:12px 16px;margin-bottom:16px;border-radius:var(--radius);
-        background:#fefce8;border:1.5px solid #fde047;color:#713f12;font-size:13px">
-      <span style="font-size:18px">👋</span>
-      <span style="flex:1"><strong>This is sample data</strong> — explore how WarmPath works while you wait for your LinkedIn archive.</span>
-      <button class="btn btn-sm" style="background:#713f12;color:#fff;border:none;white-space:nowrap"
-        onclick="switchTab('setup')">Upload my LinkedIn data →</button>
-    </div>`;
-  }
 
   // Import banner
   if (importBanner) {
@@ -2150,6 +2455,8 @@ function renderContactsList() {
       <div class="empty-state-title">No contacts match your filters</div>
       <div class="empty-state-sub"><a href="#" onclick="clearContactFilters(); return false" style="color:var(--purple)">Clear filters</a></div>
     </div>`;
+  } else if (contactViewMode === 'companies') {
+    html += renderContactsByCompany(filtered);
   } else {
     const pageSlice = filtered.slice(0, contactPage * CONTACTS_PER_PAGE);
     const showHeaders = contactFilters.grade === 'AB' || contactFilters.grade === '';
@@ -2183,6 +2490,177 @@ function renderContactsList() {
     const card = document.querySelector(`.contact-card[data-idx="${sideDrawerIdx}"]`);
     if (card) card.classList.add('drawer-active');
   }
+
+  // Sync export button visibility and count
+  updateExportBtn();
+}
+
+function setViewMode(mode) {
+  contactViewMode = mode;
+  localStorage.setItem(LS.view_mode, mode);
+  if (mode === 'companies') {
+    // Collapse all groups when switching to company view
+    companyViewInitialized = false;
+    collapsedCompanies.clear();
+  }
+  // Re-render the toggle buttons
+  document.querySelectorAll('.view-toggle-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', (i === 0 && mode === 'contacts') || (i === 1 && mode === 'companies'));
+  });
+  renderContactsList();
+}
+
+// ─── Company view ──────────────────────────────
+function getCompanyGroups(filtered) {
+  // Use normalised key for grouping, track display names separately
+  const map = {};      // groupKey → [contacts]
+  const display = {};  // groupKey → display name (from highest-scored contact)
+
+  filtered.forEach(c => {
+    const raw = (c.company || '').trim();
+    if (!raw) {
+      const key = '(No company)';
+      if (!map[key]) { map[key] = []; display[key] = key; }
+      map[key].push(c);
+      return;
+    }
+    const key = coGroupKey(raw) || raw.toLowerCase();
+    if (!map[key]) { map[key] = []; display[key] = raw; }
+    map[key].push(c);
+    // Keep display name from highest-scored contact (already have best first after sort)
+    if ((c.score || 0) > (map[key][0]?.score || 0)) display[key] = raw;
+  });
+
+  // Sort contacts within each group warmest first
+  Object.values(map).forEach(arr => arr.sort((a, b) => (b.score || 0) - (a.score || 0)));
+
+  // After sorting, update display name to whichever contact scored highest
+  Object.entries(map).forEach(([key, arr]) => {
+    if (arr[0]?.company) display[key] = arr[0].company;
+  });
+
+  // Sort companies: target cos first → A-count desc → total score desc → name asc
+  const isTarget = name => name !== '(No company)' && state.TARGET_COS.some(t => name.toLowerCase().includes(t));
+  return Object.entries(map)
+    .map(([key, arr]) => [display[key] || key, arr])
+    .sort(([nameA, arrA], [nameB, arrB]) => {
+      const tA = isTarget(nameA) ? 1 : 0;
+      const tB = isTarget(nameB) ? 1 : 0;
+      if (tA !== tB) return tB - tA;
+      const aA = arrA.filter(c => c.grade === 'A').length;
+      const bA = arrB.filter(c => c.grade === 'A').length;
+      if (aA !== bA) return bA - aA;
+      const aScore = arrA.reduce((s, c) => s + (c.score || 0), 0);
+      const bScore = arrB.reduce((s, c) => s + (c.score || 0), 0);
+      if (aScore !== bScore) return bScore - aScore;
+      return nameA.localeCompare(nameB);
+    });
+}
+
+function renderContactsByCompany(filtered) {
+  const groups = getCompanyGroups(filtered);
+
+  // First render in company view: collapse all groups
+  if (!companyViewInitialized && groups.length > 0) {
+    companyViewInitialized = true;
+    groups.forEach(([company]) => collapsedCompanies.add(company));
+  }
+
+  let html = '';
+
+  groups.forEach(([company, contacts]) => {
+    const isTarget  = company !== '(No company)' && state.TARGET_COS.some(t => company.toLowerCase().includes(t));
+    const aCount    = contacts.filter(c => c.grade === 'A').length;
+    const bCount    = contacts.filter(c => c.grade === 'B').length;
+    const cCount    = contacts.filter(c => c.grade === 'C').length;
+    const initial   = company[0]?.toUpperCase() || '?';
+    const isOpen    = !collapsedCompanies.has(company);
+    const coKeyName = coKey(company);
+    const intel     = state.COMPANY_INTEL[coKeyName];
+    const jobUrl    = company !== '(No company)' ? getJobLinks(company, state.profile.target)[0].url : null;
+    const companyJobMatch = intel?._jobMatch || null;
+
+    // Grade pill summary
+    const gradeSummary = [
+      aCount ? `<span style="color:var(--teal);font-weight:700">${aCount}A</span>` : '',
+      bCount ? `<span style="color:var(--amber);font-weight:700">${bCount}B</span>` : '',
+      cCount ? `<span style="color:var(--faint)">${cCount}C</span>` : ''
+    ].filter(Boolean).join(' · ');
+
+    // Intel chip
+    let intelChip = '';
+    if (intel?.glassdoorRating) {
+      intelChip = `<span class="company-group-intel">· Glassdoor ${intel.glassdoorRating}★</span>`;
+    }
+
+    // Target badge
+    const targetBadge = isTarget
+      ? `<span style="font-size:10px;background:var(--teal-bg);color:var(--teal);border:1px solid #b0e4d4;border-radius:10px;padding:1px 7px;font-weight:600">🎯 target</span>`
+      : '';
+
+    const safeCompany = company.replace(/'/g, "\\'");
+
+    // Job match section HTML (shown when company is expanded)
+    const jobMatchSection = company !== '(No company)' ? `
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2)" onclick="event.stopPropagation()">
+        ${companyJobMatch
+          ? renderCompanyJobMatchCard(company, companyJobMatch, coKeyName)
+          : `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+               <button class="btn btn-sm" style="background:var(--teal);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;display:inline-flex;gap:5px;align-items:center"
+                       id="co-job-btn-${coKeyName}"
+                       onclick="findBestJobMatchForCompany('${safeCompany}')">
+                 <span id="co-job-spinner-${coKeyName}" class="spinner hidden"></span> 🔍 Find job match
+               </button>
+               <span id="co-job-status-${coKeyName}" style="font-size:11px;color:var(--muted)"></span>
+             </div>`
+        }
+      </div>` : '';
+
+    html += `
+    <div class="company-group">
+      <div class="company-group-header ${aCount > 0 ? 'has-a' : ''} ${isTarget ? 'is-target' : ''}"
+           onclick="toggleCompanyGroup('${safeCompany}')">
+        <div class="company-group-avatar">${h(initial)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="company-group-name">${h(company)} ${targetBadge}</div>
+          <div class="company-group-meta">
+            ${gradeSummary}
+            <span style="color:var(--faint)">·</span>
+            <span>${contacts.length} contact${contacts.length > 1 ? 's' : ''}</span>
+            ${intelChip}
+          </div>
+        </div>
+        <div class="company-group-right">
+          ${jobUrl ? `<a class="btn btn-secondary btn-sm" style="font-size:11px" href="${h(jobUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Jobs ↗</a>` : ''}
+          ${company !== '(No company)' && !intel ? `<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation(); loadCompanyIntelForGroup('${safeCompany}', this)">Load intel</button>` : ''}
+          <span class="company-group-chevron ${isOpen ? 'open' : ''}">▶</span>
+        </div>
+      </div>
+      ${isOpen ? `
+      ${jobMatchSection}
+      <div class="company-group-contacts">
+        ${contacts.map(c => renderContactCard(c, state.contacts.indexOf(c))).join('')}
+      </div>` : ''}
+    </div>`;
+  });
+
+  return html;
+}
+
+function toggleCompanyGroup(company) {
+  if (collapsedCompanies.has(company)) collapsedCompanies.delete(company);
+  else collapsedCompanies.add(company);
+  renderContactsList();
+}
+
+async function loadCompanyIntelForGroup(company, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  // Find any contact at this company to reuse loadCompanyIntel
+  const c = state.contacts.find(c => (c.company||'').toLowerCase() === company.toLowerCase());
+  if (!c) return;
+  const idx = state.contacts.indexOf(c);
+  await loadCompanyIntel(idx);
+  renderContactsList(); // re-render to show intel in header
 }
 
 function setGradeFilter(grade) {
@@ -2217,23 +2695,114 @@ function clearContactFilters() {
   const s = document.getElementById('contact-search'); if (s) s.value = '';
   const st= document.getElementById('filter-status'); if (st) st.value = '';
   const r = document.getElementById('filter-rel');    if (r) r.value = '';
-  // Reset pills
+  // Reset grade pills
   document.querySelectorAll('.grade-pill').forEach(p => p.classList.remove('active'));
   const ab = document.querySelector('.grade-pill.pill-ab'); if (ab) ab.classList.add('active');
   renderContactsList();
 }
 
+// ─── Export helpers ───────────────────────────────────────────
+function toggleExportSelect(idx, checked) {
+  if (checked) selectedForExport.add(idx);
+  else selectedForExport.delete(idx);
+  updateExportBtn();
+}
+
+function updateExportBtn() {
+  const btn = document.getElementById('export-btn');
+  if (!btn) return;
+  const count = selectedForExport.size;
+  if (count === 0) {
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = '';
+    const exportCount = Math.min(count, 5);
+    const label = count > 5
+      ? `Export top ${exportCount} of ${count} selected`
+      : `Export ${count} selected`;
+    btn.textContent = `📤 ${label}`;
+  }
+
+  // Sync the select-all checkbox state
+  const selAll = document.getElementById('select-all-export');
+  if (!selAll) return;
+  const visibleIdxs = getVisibleContactIdxs();
+  if (visibleIdxs.length === 0) { selAll.checked = false; selAll.indeterminate = false; return; }
+  const selectedVisible = visibleIdxs.filter(i => selectedForExport.has(i)).length;
+  if (selectedVisible === 0) { selAll.checked = false; selAll.indeterminate = false; }
+  else if (selectedVisible === visibleIdxs.length) { selAll.checked = true; selAll.indeterminate = false; }
+  else { selAll.checked = false; selAll.indeterminate = true; }
+}
+
+function getVisibleContactIdxs() {
+  return getFilteredContacts()
+    .slice(0, contactPage * CONTACTS_PER_PAGE)
+    .map(c => state.contacts.indexOf(c))
+    .filter(i => i !== -1);
+}
+
+function toggleSelectAll(checked) {
+  const idxs = getVisibleContactIdxs();
+  if (checked) idxs.forEach(i => selectedForExport.add(i));
+  else         idxs.forEach(i => selectedForExport.delete(i));
+  // Reflect on individual checkboxes
+  idxs.forEach(i => {
+    const cb = document.querySelector(`.contact-card[data-idx="${i}"] .export-checkbox`);
+    if (cb) cb.checked = checked;
+  });
+  updateExportBtn();
+}
+
+function exportSelectedContacts() {
+  if (selectedForExport.size === 0) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  const candidates = [...selectedForExport]
+    .map(idx => state.contacts[idx])
+    .filter(Boolean)
+    .sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  const headers = [
+    'Full Name','Current Company','Current Role/Title','LinkedIn Profile URL',
+    'Warmth Score','Grade','Email','Relationship','Status','Last Contacted'
+  ];
+
+  const rows = candidates.map(c => {
+    const lastInteraction = (c._interactions || []).slice(-1)[0];
+    const lastDate = lastInteraction ? lastInteraction.date.split('T')[0] : '';
+    return [
+      c.name || '',
+      c.company || '',
+      c.role || c.position || '',
+      c.url || '',
+      c.score || 0,
+      c.grade || '',
+      c.email || '',
+      c.relationship || '',
+      c.status || '',
+      lastDate
+    ];
+  });
+
+  const esc = v => { const s = String(v); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s; };
+  const csv = [headers, ...rows].map(r => r.map(esc).join(',')).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `warmpath-contacts-${today}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+  selectedForExport.clear();
+  renderContactsList();
+  showBanner(`✓ Exported ${candidates.length} contact${candidates.length > 1 ? 's' : ''} to CSV`, 'success');
+}
+
 function renderContactCard(c, idx) {
   const initials  = avatarInitials(c.name);
   const avatarCls = c.grade === 'A' ? 'avatar-a' : c.grade === 'B' ? 'avatar-b' : 'avatar-c';
-  const slug      = ((c.url || '').split('/in/')[1] || '').replace(/\/$/, '').split('/')[0];
   const liUrl     = c.url || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(c.name)}`;
-  // LinkedIn message: link to profile (compose URL doesn't reliably pre-select by slug)
-  const msgUrl    = slug ? `https://www.linkedin.com/in/${slug}` : liUrl;
-  // Gmail: pre-fill subject + draft body if available
-  const subject   = c.company ? `Exploring opportunities at ${h(c.company)}` : 'Following up';
-  const body      = c._draftMsg || getStaticTemplate((c.warmthTier||'cold'), c, state.profile);
-  const gmailUrl  = `https://mail.google.com/mail/?view=cm&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   const signals   = [...(c.gradeReasons || []), c.score ? `score ${c.score}` : ''].filter(Boolean).join(' · ');
   const referredApps = state.applications.filter(a =>
     (a.referredBy || '').toLowerCase().trim() === (c.name || '').toLowerCase().trim()
@@ -2244,9 +2813,14 @@ function renderContactCard(c, idx) {
         🔗 Referred ${referredApps.length} app${referredApps.length > 1 ? 's' : ''}
       </span>`
     : '';
+  const isSelected = selectedForExport.has(idx);
 
   return `<div class="contact-card" id="card-${idx}" data-idx="${idx}">
     <div class="contact-card-header" onclick="handleCardClick(event,${idx})">
+      <label class="export-checkbox-wrap" onclick="event.stopPropagation()" title="Select for export">
+        <input type="checkbox" class="export-checkbox" ${isSelected ? 'checked' : ''}
+          onchange="toggleExportSelect(${idx}, this.checked)">
+      </label>
       <div class="avatar ${avatarCls}">${h(initials.toUpperCase())}</div>
       <div class="contact-info">
         <div class="contact-name-row">
@@ -2260,7 +2834,6 @@ function renderContactCard(c, idx) {
         <div class="contact-actions">
           ${c.company ? `<a class="contact-link" style="font-weight:600;color:var(--purple)" href="${h(getJobLinks(c.company, state.profile.target)[0].url)}" target="_blank" rel="noopener" title="Search open roles at ${h(c.company)}" onclick="event.stopPropagation()">Jobs ↗</a>` : ''}
           <a class="contact-link" href="${h(liUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="View LinkedIn profile">Profile ↗</a>
-          <a class="contact-link" href="${h(msgUrl)}" target="_blank" rel="noopener" title="Opens their LinkedIn profile — click Message from there" onclick="event.stopPropagation()">Message ↗</a>
           <select class="grade-select-inline" onchange="updateContactStatus(${idx}, this.value)" style="width:130px" onclick="event.stopPropagation()">
             ${CONTACT_STATUSES.map(s => `<option value="${h(s)}" ${c.status===s?'selected':''}>${h(s)}</option>`).join('')}
           </select>
@@ -2286,6 +2859,7 @@ function openSideDrawer(idx) {
 
   const alreadyOpen = sideDrawerIdx !== null;
   sideDrawerIdx = idx;
+  logActivity('drawer_opened', { contactIdx: idx }); // tracks contacts researched
 
   // Highlight active card, remove from all others
   document.querySelectorAll('.contact-card.drawer-active').forEach(el => el.classList.remove('drawer-active'));
@@ -2361,6 +2935,9 @@ function renderDrawerContent(idx) {
   const msgUrl = slug ? `https://www.linkedin.com/in/${slug}` : liUrl;
   const jobLinks = getJobLinks(c.company, state.profile.target);
   const intelCached = c.company ? state.COMPANY_INTEL[coKey(c.company)] : null;
+  const companyJobMatch = intelCached?._jobMatch || null;
+  // Pre-fill savedRole from company-level job match if no role set yet
+  if (companyJobMatch && !c.savedRole) c.savedRole = companyJobMatch.title;
 
   let intelHtml = '';
   if (intelCached) {
@@ -2368,8 +2945,6 @@ function renderDrawerContent(idx) {
     const ageLabel = age !== null ? ` · ${age}d ago` : '';
     intelHtml = `
       ${intelCached.glassdoorRating ? `<span class="intel-chip">Glassdoor ${intelCached.glassdoorRating} ★</span>` : ''}
-      ${intelCached.salaryRange     ? `<span class="intel-chip">${h(intelCached.salaryRange)}</span>` : ''}
-      ${intelCached.reviewSentiment ? `<span class="intel-chip" title="${h(intelCached.reviewSentiment)}">Reviews ℹ</span>` : ''}
       <button class="btn btn-ghost btn-sm" onclick="loadCompanyIntel(${idx})">↻ Refresh${ageLabel}</button>`;
   } else {
     intelHtml = `<button class="btn btn-secondary btn-sm" onclick="loadCompanyIntel(${idx})" id="intel-btn-${idx}">→ Load intel</button>
@@ -2378,65 +2953,123 @@ function renderDrawerContent(idx) {
 
   drawer.innerHTML = `
     <div style="padding:4px 0 12px">
-      <div class="drawer-section-label">Grade</div>
-      <div style="display:flex;gap:6px;margin-bottom:12px">
-        <button class="btn btn-sm${c.grade==='A'?' btn-teal':' btn-ghost'}" onclick="updateContactGrade(${idx},'A');renderDrawerContent(${idx})">A</button>
-        <button class="btn btn-sm${c.grade==='B'?' btn-amber':' btn-ghost'}" onclick="updateContactGrade(${idx},'B');renderDrawerContent(${idx})">B</button>
-        <button class="btn btn-sm${c.grade==='C'?' btn-secondary':' btn-ghost'}" onclick="updateContactGrade(${idx},'C');renderDrawerContent(${idx})">C</button>
+
+      <!-- ① Grade — quick assign, compact -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+        <span style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.5px">Grade</span>
+        <button class="btn btn-sm${c.grade==='A'?' btn-teal':' btn-ghost'}" onclick="updateContactGrade(${idx},'A');renderDrawerContent(${idx})">A — Warm</button>
+        <button class="btn btn-sm${c.grade==='B'?' btn-amber':' btn-ghost'}" onclick="updateContactGrade(${idx},'B');renderDrawerContent(${idx})">B — Lukewarm</button>
+        <button class="btn btn-sm${c.grade==='C'?' btn-secondary':' btn-ghost'}" onclick="updateContactGrade(${idx},'C');renderDrawerContent(${idx})">C — Cold</button>
       </div>
 
-      <div class="drawer-section-label">More job boards <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--faint)">(LinkedIn Jobs is on the card)</span></div>
-      <div class="job-links">
-        ${jobLinks.slice(1).map(l => `<a class="btn btn-secondary btn-sm" href="${h(l.url)}" target="_blank" rel="noopener">${h(l.label)} ↗</a>`).join('')}
-      </div>
-
-      <div class="drawer-section-label">Role you want to reference</div>
-      <div class="role-row">
-        <input class="role-input" id="role-input-${idx}" placeholder="Paste job title or URL from the links above"
-          value="${h(c.savedRole || '')}">
-        <button class="btn btn-primary btn-sm" onclick="generateMessage(${idx})">
-          <span id="gen-spinner-${idx}" class="spinner hidden"></span>
-          Generate message
-        </button>
-      </div>
-
-      <div class="drawer-section-label">Company intelligence <span style="font-weight:400;color:var(--faint)">(on demand)</span></div>
-      <div class="intel-row" id="intel-row-${idx}">${intelHtml}</div>
-
-      <div class="drawer-section-label">Generated outreach — edit before sending</div>
-      <textarea class="msg-textarea" id="msg-ta-${idx}">${h(c._draftMsg || getStaticTemplate(smartScore(c,state).warmthTier, c, state.profile))}</textarea>
-
-      <div class="drawer-actions">
+      <!-- ② Message — PRIMARY: visible immediately, no scrolling needed -->
+      ${(() => {
+        const iState = getInteractionState(c);
+        const banners = {
+          followup: { bg:'var(--amber-bg)', border:'#f5d58a', icon:'↩️', label:'Follow-up mode',
+            detail: c._lastSentDate ? `Last sent ${Math.max(0,Math.floor((Date.now()-new Date(c._lastSentDate))/86400000))}d ago — no reply yet` : 'Previously contacted — no reply recorded' },
+          'post-reply': { bg:'var(--teal-bg)', border:'#a0dfc8', icon:'✅', label:'They replied',
+            detail: 'Message below is warmer and more direct — skip the intro' }
+        };
+        const b = banners[iState];
+        if (b) return `<div style="font-size:11px;color:var(--text);margin-bottom:6px;padding:5px 10px;background:${b.bg};border-radius:5px;border:1px solid ${b.border};display:flex;align-items:center;gap:6px">
+          <span>${b.icon}</span>
+          <span><strong>${b.label}</strong> — ${b.detail}${c._lastSentMsg ? ` · <span style="font-style:italic;color:var(--muted)">${h(c._lastSentMsg.slice(0,70))}${c._lastSentMsg.length>70?'…':''}</span>` : ''}</span>
+        </div>`;
+        return '';
+      })()}
+      <textarea class="msg-textarea" id="msg-ta-${idx}" style="font-size:13px">${h(c._draftMsg || getStaticTemplate(smartScore(c,state).warmthTier, c, state.profile, getInteractionState(c)))}</textarea>
+      <div class="drawer-actions" style="margin-top:6px">
+        <button class="btn btn-teal btn-sm" onclick="logAsSent(${idx})">✓ Log as sent</button>
         <button class="btn btn-secondary btn-sm" onclick="copyMessage(${idx})">Copy</button>
-        <button class="btn btn-teal btn-sm" onclick="logAsSent(${idx})">Log as sent</button>
-        <button class="btn btn-ghost btn-sm" onclick="generateMessage(${idx})">Regenerate</button>
-        <button class="btn btn-ghost btn-sm" onclick="generateResume(${idx})" title="Generate a tailored resume for this role">📄 Tailor resume</button>
-        <a class="btn btn-secondary btn-sm" href="${h(msgUrl)}" target="_blank" rel="noopener" style="margin-left:auto">Message on LinkedIn ↗</a>
-        <span class="drawer-status" id="drawer-status-${idx}"></span>
+        <a class="btn btn-secondary btn-sm" href="${h(msgUrl)}" target="_blank" rel="noopener">LinkedIn ↗</a>
+        <span class="drawer-status" id="drawer-status-${idx}" style="margin-left:auto"></span>
       </div>
 
+      <!-- ③ Refine — job context, tone, regenerate (secondary controls) -->
+      <details style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+        <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:12px;font-weight:600;color:var(--text)">Customise outreach</span>
+          <span style="font-size:11px;color:var(--purple)">
+            ${c.savedRole || c._jdText ? `<span style="color:var(--teal)">✓ role set</span>` : 'add role / JD'}
+            &nbsp;▾
+          </span>
+        </summary>
+        <div style="margin-top:10px">
+          <div class="drawer-section-label">Job you're targeting</div>
+          <div style="display:flex;gap:4px;margin-bottom:7px">
+            <button class="btn btn-sm ${c._jdMode==='paste'?'btn-ghost':'btn-secondary'}" onclick="setJdMode(${idx},'url')">🔗 URL / title</button>
+            <button class="btn btn-sm ${c._jdMode==='paste'?'btn-secondary':'btn-ghost'}" onclick="setJdMode(${idx},'paste')">📋 Paste JD</button>
+          </div>
+          ${c._jdMode === 'paste' ? `
+            <textarea id="jd-paste-${idx}" class="msg-textarea" style="min-height:80px;font-size:12px;font-family:monospace;margin-bottom:6px" placeholder="Paste the full job description here…">${h(c._jdText||'')}</textarea>
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <button class="btn btn-primary btn-sm" onclick="saveJdPaste(${idx});generateMessage(${idx})">
+                <span id="gen-spinner-${idx}" class="spinner hidden"></span>Regenerate message
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="saveJdPaste(${idx})">Save JD</button>
+            </div>
+          ` : `
+            <div class="role-row" style="margin-bottom:3px">
+              <input class="role-input" id="role-input-${idx}" placeholder="Job title or URL"
+                value="${h(c.savedRole || '')}">
+              <button class="btn btn-ghost btn-sm" onclick="fetchJdContent(${idx})" title="Try to read JD from URL">Read ↗</button>
+              <button class="btn btn-primary btn-sm" onclick="generateMessage(${idx})">
+                <span id="gen-spinner-${idx}" class="spinner hidden"></span>Regenerate
+              </button>
+            </div>
+            <div id="jd-fetch-status-${idx}" style="font-size:11px;min-height:14px;margin-bottom:4px">${c._jdFetched ? `<span style="color:var(--teal)">✓ JD loaded (${c._jdFetched.length} chars) — <button class="btn btn-sm btn-ghost" style="padding:0 4px;font-size:11px" onclick="clearJdFetch(${idx})">Clear ✕</button></span>` : ''}</div>
+          `}
+          <div style="display:flex;gap:6px;align-items:center;margin-top:4px;margin-bottom:10px">
+            <span style="font-size:11px;color:var(--muted)">Tone:</span>
+            <select id="msg-tone-${idx}" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text)">
+              <option value="auto">Auto (from relationship)</option>
+              <option value="casual">Casual &amp; friendly</option>
+              <option value="professional">Professional</option>
+              <option value="formal">Formal</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="generateResume(${idx})" title="Generate a tailored resume for this role">📄 Tailor resume</button>
+            <button class="btn btn-ghost btn-sm" onclick="openResumeChecker(${idx})" title="Compare dates across LinkedIn, resume &amp; profile">🔍 Check facts</button>
+            ${c._lastResumeDate ? `<span style="font-size:11px;color:var(--muted);align-self:center" title="Last resume: ${h(c._lastResumeRole||'')}">📄 ${Math.max(0,Math.floor((Date.now()-new Date(c._lastResumeDate))/86400000))}d ago</span>` : ''}
+          </div>
+        </div>
+      </details>
+
+      <!-- ④ Company intel — compact chip row -->
+      ${c.company ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.4px">${h(c.company)}</span>
+        <div class="intel-row" id="intel-row-${idx}" style="flex:1">${intelHtml}</div>
+      </div>` : ''}
+
+      <!-- ⑤ Referral ask — conditional, clearly secondary -->
       ${c.status === 'Replied' ? `
-      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px">
-        <div class="drawer-section-label">Referral ask — send this after they reply <span style="color:var(--teal);font-weight:600;letter-spacing:0">✓ Replied</span></div>
+      <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:14px;background:var(--surface2);border-radius:var(--radius);padding:12px;margin-top:14px">
+        <div class="drawer-section-label">Referral ask <span style="color:var(--teal);font-weight:600;letter-spacing:0;text-transform:none">✓ They replied — ask now</span></div>
         <textarea class="msg-textarea" id="ref-ask-ta-${idx}" style="margin-top:4px">${h(c._refAskMsg || getReferralAskTemplate(c, state.profile, (c.savedRole||'')))}</textarea>
         <div class="drawer-actions" style="margin-top:8px">
-          <button class="btn btn-secondary btn-sm" onclick="copyRefAsk(${idx})">Copy referral ask</button>
+          <button class="btn btn-teal btn-sm" onclick="copyRefAsk(${idx})">Copy referral ask</button>
           <button class="btn btn-ghost btn-sm" onclick="regenerateRefAsk(${idx})">Regenerate</button>
           <span class="drawer-status" id="ref-ask-status-${idx}"></span>
         </div>
       </div>` : ''}
 
-      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px">
-        <div class="drawer-section-label">Feedback received</div>
-        <textarea id="drawer-note-ta-${idx}" style="width:100%;min-height:70px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);resize:vertical;box-sizing:border-box"
-          placeholder="What did they say about your fit, the team, open roles…">${h(c._note || '')}</textarea>
-        <div style="display:flex;gap:8px;margin-top:6px">
-          <button class="btn btn-primary btn-sm" onclick="saveContactNote(${idx})">Save</button>
-          <button class="btn btn-ghost btn-sm" onclick="cancelContactNote(${idx})">Cancel</button>
-          ${c._note ? `<button class="btn btn-red btn-sm" onclick="clearContactNote(${idx})">Clear</button>` : ''}
+      <!-- ⑥ Interaction history — full audit trail -->
+      <details style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px" ${(c._interactions||[]).length > 0 ? 'open' : ''}>
+        <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:12px;font-weight:600;color:var(--text)">Interaction history</span>
+          <span style="font-size:11px;color:${(c._interactions||[]).length>0?'var(--teal)':'var(--purple)'}">
+            ${(c._interactions||[]).length} logged &nbsp;▾
+          </span>
+        </summary>
+        <div style="margin-top:8px">
+          ${renderInteractionTimeline(c, idx)}
         </div>
-      </div>
+      </details>
+
     </div>`;
+
 }
 
 // ── AI abstraction layer ──────────────────────
@@ -2496,13 +3129,39 @@ async function callAI(prompt, maxTokens = 400, useWebSearch = false) {
 }
 
 // ── Static warmth-tier templates ─────────────
-function getStaticTemplate(warmthTier, contact, profile) {
+// Returns 'first' | 'followup' | 'post-reply' based on WarmPath interaction history
+function getInteractionState(c) {
+  const interactions = c._interactions || [];
+  if (interactions.length === 0) return 'first';
+  const hasReply = interactions.some(i => i.response === 'replied' || i.response === 'positive');
+  if (hasReply) return 'post-reply';
+  return 'followup'; // sent but no response recorded
+}
+
+function getStaticTemplate(warmthTier, contact, profile, interactionState = 'first') {
   const firstName = (contact.name || '').split(' ')[0];
   const company   = contact.company || 'your company';
   const target    = (profile?.target || 'a product role').split(',')[0].trim();
   const myName    = profile?.name || '';
   const myLevel   = profile?.currentLevel || 'product professional';
 
+  // ── Follow-up templates override warmth-tier first-contact ones ──
+
+  if (interactionState === 'followup') {
+    const daysSince = contact._lastSentDate
+      ? Math.floor((Date.now() - new Date(contact._lastSentDate)) / 86400000)
+      : 14;
+    const timeRef = daysSince <= 7 ? 'last week'
+                  : daysSince <= 21 ? 'a couple of weeks back'
+                  : 'a while back';
+    return `Hi ${firstName},\n\nI reached out ${timeRef} about ${target} opportunities at ${company} — just following up in case it got buried.\n\nNo pressure if the timing isn't right. But if there's a role worth knowing about or someone I should speak with, I'd be grateful for the nudge.\n\nHappy to keep it brief.`;
+  }
+
+  if (interactionState === 'post-reply') {
+    return `Hi ${firstName},\n\nThanks again for getting back to me — really appreciated.\n\nI'm actively pursuing ${target} roles and ${company} remains high on my list. Would you be comfortable pointing me to the right person on the hiring side, or letting me know if there's something relevant open?\n\nHappy to take it from here once I have a name.`;
+  }
+
+  // ── First contact — warmth-tier templates ──
   const T = {
     recommender: `Hi ${firstName},\n\nThank you again for the recommendation — it genuinely meant a lot.\n\nI'm actively exploring ${target} opportunities and ${company} is high on my list. Given your experience there, I'd love your honest perspective on the team and what it takes to succeed.\n\nWould you be open to a quick call? Happy to work around your schedule.`,
     'close-colleague': `Hi ${firstName},\n\nHope things are going well at ${company}!\n\nI'm actively looking at ${target} roles and your team came up as a natural fit. Given our time together, I'd value your honest take — any open roles or people I should speak with?\n\nWorth a quick catch-up?`,
@@ -2534,18 +3193,27 @@ async function generateMessage(idx) {
   if (!c) return;
   const cfg = getAIConfig();
 
-  const roleHint = (document.getElementById(`role-input-${idx}`)?.value || '').trim();
-  const spinner  = document.getElementById(`gen-spinner-${idx}`);
-  const ta       = document.getElementById(`msg-ta-${idx}`);
+  const jdContext = getJdContext(idx);
+  const roleHint  = (document.getElementById(`role-input-${idx}`)?.value || c.savedRole || '').trim();
+  const spinner   = document.getElementById(`gen-spinner-${idx}`);
+  const ta        = document.getElementById(`msg-ta-${idx}`);
 
-  // No AI configured — use static template
+  // Detect prior interaction state
+  const interactionState   = getInteractionState(c);
+  const interactions       = c._interactions || [];
+  const lastInteraction    = interactions[interactions.length - 1];
+  const daysSinceLast      = c._lastSentDate
+    ? Math.floor((Date.now() - new Date(c._lastSentDate)) / 86400000)
+    : null;
+
+  // No AI configured — use static template, but tell the user clearly
   if (!cfg.apiKey && cfg.provider !== 'ollama') {
     const scored = smartScore(c, state);
-    let tmpl = getStaticTemplate(scored.warmthTier, c, state.profile);
+    let tmpl = getStaticTemplate(scored.warmthTier, c, state.profile, interactionState);
     if (isUrl(roleHint)) tmpl += `\n\nRole I had in mind: ${roleHint}`;
     if (ta) ta.value = tmpl;
     state.contacts[idx]._draftMsg = tmpl;
-    setDrawerStatus(idx, 'Template applied — edit before sending.', 'info');
+    setDrawerStatus(idx, '📝 Using a built-in template (no AI key set — add one in Setup → Settings for personalised messages)', 'info');
     return;
   }
 
@@ -2553,6 +3221,32 @@ async function generateMessage(idx) {
   setDrawerStatus(idx, 'Generating…', 'info');
 
   const scored  = smartScore(c, state);
+
+  // Build interaction context — overrides warmth-tier tone when there's prior contact
+  let interactionContext = '';
+  let interactionRules   = '';
+  if (interactionState === 'followup') {
+    const timeRef = daysSinceLast !== null
+      ? `${daysSinceLast} day${daysSinceLast === 1 ? '' : 's'} ago`
+      : 'previously';
+    interactionContext = `\nPRIOR CONTACT: You already messaged ${c.name.split(' ')[0]} ${timeRef}. No reply yet.
+This is a follow-up — NOT a fresh introduction. They know who you are.`;
+    interactionRules = `- This is a follow-up message — do NOT re-introduce yourself
+- Acknowledge the previous message briefly and naturally (don't be passive-aggressive about the silence)
+- Keep it shorter than a first message — 2–3 paragraphs max
+- End with an easy exit ("no worries if the timing isn't right")`;
+  } else if (interactionState === 'post-reply') {
+    interactionContext = `\nPRIOR CONTACT: ${c.name.split(' ')[0]} has already replied to your outreach. You have an active thread.
+This is a warm follow-through — NOT a cold intro. They engaged, so skip all preamble.`;
+    interactionRules = `- Skip the intro entirely — they know you and replied
+- Be more direct with the ask (referral, intro, role info)
+- Warmer and more conversational than a first message
+- Reference that they got back to you ("Thanks for the reply / getting back to me")
+- Under 100 words`;
+  } else {
+    interactionRules = `- This is a first contact — establish context early`;
+  }
+
   const toneMap = {
     'recommender':    { tone: 'Warm, personal, first-name, casual. Reference the recommendation.', opening: 'Reference something specific from their recommendation text or shared project.' },
     'close-colleague':{ tone: 'Casual, warm, first-name. Many messages exchanged.', opening: 'Specific shared memory, project, or inside reference. Not "hope you\'re well".' },
@@ -2562,29 +3256,50 @@ async function generateMessage(idx) {
     'warm-unknown':   { tone: 'Professional, peer-to-peer. Specific hook.', opening: 'Lead with something specific about their company, role, or recent work.' },
     'cold':           { tone: 'Formal but not stiff. Short, respectful of their time.', opening: 'Reference something very specific about their company or problem space.' }
   };
-  const tone = toneMap[scored.warmthTier] || toneMap['cold'];
+  let tone = { ...(toneMap[scored.warmthTier] || toneMap['cold']) };
+
+  // Interaction state overrides warmth-tier tone
+  if (interactionState === 'followup') {
+    tone.tone    = 'Light, brief, no pressure. Softer than the first message.';
+    tone.opening = 'A single sentence acknowledging you reached out before.';
+  } else if (interactionState === 'post-reply') {
+    tone.tone    = 'Warm, direct, conversational. Build on the existing thread.';
+    tone.opening = 'Acknowledge their reply in one short line, then the ask.';
+  }
+
+  const toneOverride = (document.getElementById(`msg-tone-${idx}`)?.value || 'auto');
+  if (toneOverride !== 'auto') {
+    const overrideDescriptions = {
+      'casual':       'Very casual and friendly. Use first name. Conversational, like messaging a friend. Skip all formalities.',
+      'professional': 'Professional and warm. Peer-to-peer. Respectful but not stiff.',
+      'formal':       'Formal and polished. Full names are acceptable. Structured paragraphs.'
+    };
+    tone.tone = overrideDescriptions[toneOverride] || tone.tone;
+  }
   const profile = state.profile;
+
+  const bgSnippet  = (profile.bg || 'Senior product professional').slice(0, 500);
+  const jdSnippet  = jdContext && jdContext !== roleHint ? jdContext.slice(0, 1000) : '';
 
   const prompt = `You are writing a LinkedIn direct message on behalf of ${profile.name || 'the user'}.
 
 USER'S BACKGROUND:
-${profile.bg || 'Senior product professional'}
-Headline: ${profile.headline || ''}
-Target roles: ${profile.target || ''}
+${bgSnippet}
+Headline: ${(profile.headline || '').slice(0, 120)}
+Target roles: ${(profile.target || '').slice(0, 100)}
 Top skills: ${(profile.topSkills || []).slice(0,5).join(', ')}
 
-CONTACT INTELLIGENCE:
+CONTACT:
 Name: ${c.name}
-Current role: ${c.role || ''}
+Role: ${c.role || ''}
 Company: ${c.company || ''}
 Relationship: ${c.relationship || ''}
-Messages exchanged historically: ${scored.msgCount}
-Warmth tier: ${scored.warmthTier}
-Grade: ${scored.grade}
-Signals: ${scored.reasons.join(', ')}
-
-TARGET ROLE: ${roleHint || 'a product platform role at ' + (c.company || 'their company')}
+Messages exchanged (LinkedIn history): ${scored.msgCount}
+Warmth: ${scored.warmthTier} · Grade ${scored.grade}
+${interactionContext}
+TARGET ROLE: ${roleHint || 'a suitable role at ' + (c.company || 'their company')}
 ${isUrl(roleHint) ? `JOB LINK: ${roleHint}` : ''}
+${jdSnippet ? `JOB DESCRIPTION:\n${jdSnippet}` : ''}
 
 TONE: ${tone.tone}
 OPENING: ${tone.opening}
@@ -2594,25 +3309,35 @@ RULES:
 - 3–4 short paragraphs
 - Do NOT use: "hope this message finds you well", "I am passionate about", "synergy", "leverage", "circle back", "reach out", "I came across your profile"
 - Do NOT start with "Hi [name], I hope..."
-- If a job link is provided, include it naturally in the message (e.g. "I spotted this role: <link>")
+- If a job link is provided, include it naturally in the message
+- If JD provided, reference 1–2 specific requirements
 - End with a no-pressure close
-- Output ONLY the message text — no subject line, no preamble, no explanation`;
+${interactionRules}
+- Output ONLY the message text — no subject line, no preamble`;
 
   try {
     const msg = await callAI(prompt, 400);
     if (ta) ta.value = msg;
     state.contacts[idx]._draftMsg = msg;
-    setDrawerStatus(idx, 'Message generated ✓', 'success');
+    saveContacts(); // persist so it survives tab switches and page reloads
+    setDrawerStatus(idx, 'Message generated ✓ — saved', 'success');
   } catch(e) {
     // Fallback to static template on any AI error
-    let tmpl = getStaticTemplate(scored.warmthTier, c, state.profile);
+    let tmpl = getStaticTemplate(scored.warmthTier, c, state.profile, interactionState);
     if (isUrl(roleHint)) tmpl += `\n\nRole I had in mind: ${roleHint}`;
     if (ta) ta.value = tmpl;
     state.contacts[idx]._draftMsg = tmpl;
-    const isCors = e.message?.includes('Failed to fetch') || e.message?.includes('CORS');
+    const msg = e.message || '';
+    const isCors      = msg.includes('Failed to fetch') || msg.includes('CORS') || msg.includes('NetworkError');
+    const isRateLimit = msg.includes('rate limit') || msg.includes('rate_limit') || msg.includes('429');
+    const isQuota     = msg.includes('quota') || msg.includes('credit') || msg.includes('billing');
     const errMsg = isCors
-      ? 'AI unavailable (CORS — use launch.command). Template loaded instead.'
-      : `AI error: ${e.message}. Template loaded instead.`;
+      ? '⚠️ AI not reachable — double-click launch.command first, then retry.'
+      : isRateLimit
+      ? '⚠️ Rate limit hit — wait 60 seconds then try again. (Anthropic free tier: 30k tokens/min)'
+      : isQuota
+      ? '⚠️ API quota exceeded — check your Anthropic billing at console.anthropic.com'
+      : `⚠️ AI error: ${msg.slice(0,100)}`;
     setDrawerStatus(idx, errMsg, 'warn');
   } finally {
     if (spinner) spinner.classList.add('hidden');
@@ -2688,31 +3413,832 @@ async function regenerateRefAsk(idx) {
   }
 }
 
+// ── JD mode helpers ──────────────────────────
+function setJdMode(idx, mode) {
+  const c = state.contacts[idx];
+  if (!c) return;
+  // Save current paste text before switching
+  if (c._jdMode === 'paste') {
+    const ta = document.getElementById(`jd-paste-${idx}`);
+    if (ta) c._jdText = ta.value;
+  }
+  c._jdMode = mode;
+  saveContacts();
+  renderDrawerContent(idx);
+}
+
+function saveJdPaste(idx) {
+  const ta = document.getElementById(`jd-paste-${idx}`);
+  const c  = state.contacts[idx];
+  if (c && ta) {
+    c._jdText = ta.value;
+    saveContacts();
+    setDrawerStatus(idx, 'JD saved ✓', 'success');
+  }
+}
+
+function clearJdFetch(idx) {
+  const c = state.contacts[idx];
+  if (c) { delete c._jdFetched; delete c._jdFetchedTitle; saveContacts(); renderDrawerContent(idx); }
+}
+
+async function fetchJdContent(idx) {
+  const c      = state.contacts[idx];
+  const input  = document.getElementById(`role-input-${idx}`);
+  const statusEl = document.getElementById(`jd-fetch-status-${idx}`);
+  const url    = input?.value?.trim();
+
+  if (!url || !isUrl(url)) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--red)">⚠️ Enter a URL first, then click Read ↗</span>';
+    return;
+  }
+  const cfg = getAIConfig();
+  if (!cfg.apiKey && cfg.provider !== 'ollama') {
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">Add an AI key in Setup → Settings to read URLs. Or <button class="btn btn-sm btn-ghost" style="padding:0 4px;font-size:11px" onclick="setJdMode(${idx},'paste')">paste JD →</button></span>`;
+    return;
+  }
+
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--muted)">Reading URL…</span>';
+
+  const prompt = `You have web search access. Visit this URL and extract the job description: ${url}
+
+Return ONLY this JSON (no other text):
+{"success":true,"title":"job title","company":"company name","requirements":["key requirement 1","key requirement 2"],"text":"full JD text up to 2000 chars"}
+
+If you cannot access the page, return: {"success":false,"reason":"brief reason"}`;
+
+  try {
+    const raw = await callAI(prompt, 900, cfg.provider === 'anthropic');
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('no json');
+    const result = JSON.parse(match[0]);
+    if (result.success && result.text) {
+      c._jdFetched      = result.text;
+      c._jdFetchedTitle = result.title || '';
+      if (result.title && input) input.value = result.title; // fill title field
+      saveContacts();
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--teal)">✓ JD read (${result.text.length} chars)${result.title ? ' — '+h(result.title) : ''} — <button class="btn btn-sm btn-ghost" style="padding:0 4px;font-size:11px" onclick="clearJdFetch(${idx})">Clear ✕</button></span>`;
+    } else {
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--amber)">⚠️ Couldn't read this URL (${h(result.reason||'blocked')}) — <button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="setJdMode(${idx},'paste')">Paste JD instead →</button></span>`;
+    }
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--red)">✗ Error reading URL — <button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="setJdMode(${idx},'paste')">Paste JD instead →</button></span>`;
+  }
+}
+
+// ── Find the right job match ──────────────────
+// Strategy: try to fetch company careers page via local proxy → send to Claude
+// → Claude returns best matching job title + URL.
+// Fallback: if page is empty/JS-rendered, open a smart LinkedIn Jobs search URL.
+async function findBestJobMatch(idx) {
+  const c         = state.contacts[idx];
+  if (!c || !c.company) return;
+
+  const btn       = document.getElementById(`find-job-btn-${idx}`);
+  const spinner   = document.getElementById(`find-job-spinner-${idx}`);
+  const statusEl  = document.getElementById(`find-job-status-${idx}`);
+  const resultEl  = document.getElementById(`find-job-result-${idx}`);
+  const cfg       = getAIConfig();
+
+  if (!cfg.apiKey && cfg.provider !== 'ollama') {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--red)">Add an AI key in Setup → Settings first.</span>';
+    return;
+  }
+
+  // UI: loading state
+  if (btn)     btn.disabled = true;
+  if (spinner) spinner.classList.remove('hidden');
+  if (statusEl) statusEl.textContent = 'Searching…';
+  if (resultEl) resultEl.style.display = 'none';
+
+  const targetRole  = (state.profile.target || 'product manager').split(/[,;\/]/)[0].trim();
+  const company     = c.company;
+  const locPrefs    = (() => { try { return JSON.parse(localStorage.getItem(LS.job_loc_prefs) || '[]'); } catch(e){ return []; } })();
+  const locPrefStr  = locPrefs.length ? locPrefs.map((l,i) => `${i+1}. ${l}`).join(', ') : (localStorage.getItem(LS.job_location) || 'any');
+  const seniority   = state.profile.currentLevel || '';
+
+  // Step 1: try to fetch the careers page via the local proxy
+  let careersText = '';
+  let careersUrl  = '';
+  const candidateUrls = [
+    `https://www.linkedin.com/company/${encodeURIComponent(company.toLowerCase().replace(/\s+/g,'-'))}/jobs/`,
+    `https://${company.toLowerCase().replace(/\s+/g,'')}.com/careers`,
+    `https://${company.toLowerCase().replace(/\s+/g,'')}.com/jobs`
+  ];
+
+  for (const tryUrl of candidateUrls) {
+    try {
+      const res  = await fetch(`http://localhost:8080/proxy?url=${encodeURIComponent(tryUrl)}`, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.length > 400 && text.includes(targetRole.split(' ')[0].toLowerCase())) {
+          careersText = text.slice(0, 6000);
+          careersUrl  = tryUrl;
+          break;
+        }
+      }
+    } catch(e) { /* proxy not available or timeout — fall through */ }
+  }
+
+  try {
+    let prompt, raw, result;
+
+    const today = new Date().toISOString().split('T')[0];
+    const sharedContext = `Candidate profile:
+- Target role: "${targetRole}"${seniority ? `\n- Seniority: ${seniority}` : ''}
+- Background: ${state.profile.bg ? state.profile.bg.slice(0,200) : 'Senior professional'}
+- Location preferences (in order): ${locPrefStr}
+- Today's date: ${today}`;
+
+    if (careersText) {
+      // We have real content — ask Claude to find the best match
+      prompt = `You are helping a job seeker find the best matching open role at ${company}.
+
+${sharedContext}
+
+Careers page content (partial HTML/text):
+${careersText}
+
+RULES:
+1. Only consider jobs posted within the last 30 days. If a posting date is not visible or is older than 30 days, exclude it.
+2. Match seniority — skip roles clearly below or above the candidate's level.
+3. If multiple roles qualify, rank by location preference order above.
+4. Return the single best match only.
+
+Return ONLY this JSON (no other text):
+{"found":true,"title":"exact job title","url":"full job URL if visible else null","location":"job location as listed","postedDate":"YYYY-MM-DD or null if not visible","summary":"1 sentence on why this matches","snippet":"1-2 line excerpt from the JD"}
+
+If no role matches (wrong level, too old, wrong location, or none found), return:
+{"found":false,"reason":"specific reason e.g. no roles posted in last 30 days / no senior roles / location mismatch"}`;
+    } else {
+      // No content fetched — ask Claude to reason about the best search approach
+      prompt = `You are helping a job seeker find the right open role at ${company}.
+
+${sharedContext}
+
+The company careers page wasn't directly accessible. Based on your knowledge of ${company}'s typical hiring:
+- Only suggest a role if you are confident they are actively hiring for it and it would have been posted recently (within ~30 days).
+- If you are not confident about a current opening, set found to false.
+- Match the candidate's seniority and location preferences.
+
+Return ONLY this JSON:
+{"found":true,"title":"most likely current job title","url":"${company.toLowerCase().replace(/\s+/g,'')}.com/careers or similar","location":"likely location","postedDate":null,"summary":"1 sentence on why this matches","snippet":""}
+
+Or if not confident: {"found":false,"reason":"brief reason"}`;
+    }
+
+    raw    = await callAI(prompt, 500, cfg.provider === 'anthropic');
+    const match = raw.match(/\{[\s\S]*?\}/);
+    if (!match) throw new Error('no json');
+    result = JSON.parse(match[0]);
+
+    if (result.found) {
+      // Persist the match on the contact so it survives tab switches / reloads
+      const jobUrl = result.url || getJobLinks(company, targetRole)[0].url;
+      c._jobMatch = {
+        title:      result.title,
+        url:        jobUrl,
+        location:   result.location || '',
+        postedDate: result.postedDate || null,
+        summary:    result.summary || '',
+        snippet:    result.snippet || '',
+        foundAt:    new Date().toISOString(),
+        fromCareer: !!careersText
+      };
+      c.savedRole = result.title;
+      saveContacts();
+
+      // Auto-fill the role input
+      const roleInput = document.getElementById(`role-input-${idx}`);
+      if (roleInput) roleInput.value = result.title;
+
+      showJobMatchResult(idx, c._jobMatch, '');
+      if (statusEl) statusEl.textContent = '';
+
+    } else {
+      // Not stale fallback — surface the reason clearly
+      throw new Error(result.reason || 'no match found');
+    }
+
+  } catch(e) {
+    const reason   = e.message || '';
+    const isStale  = reason.toLowerCase().includes('30 days') || reason.toLowerCase().includes('old') || reason.toLowerCase().includes('recent');
+    const isLevel  = reason.toLowerCase().includes('senior') || reason.toLowerCase().includes('level') || reason.toLowerCase().includes('junior');
+    const isLoc    = reason.toLowerCase().includes('location') || reason.toLowerCase().includes('remote');
+    const icon     = isStale ? '📅' : isLevel ? '📊' : isLoc ? '📍' : '🔍';
+    const friendly = isStale
+      ? 'No jobs posted at this company in the last 30 days that match your role.'
+      : isLevel ? 'No roles at your seniority level found currently.'
+      : isLoc   ? 'No roles in your preferred locations found.'
+      : 'No matching open role found right now.';
+    const liUrl = getJobLinks(company, targetRole)[0].url;
+    if (resultEl) {
+      resultEl.style.display = '';
+      resultEl.innerHTML = `
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:12px">
+          <div style="color:var(--text);font-weight:600;margin-bottom:4px">${icon} ${friendly}</div>
+          ${reason && !['no match found','no json'].includes(reason) ? `<div style="color:var(--faint);font-size:11px;margin-bottom:8px">${h(reason)}</div>` : ''}
+          <div style="color:var(--muted);font-size:11px;margin-bottom:8px">You can still reach out — or check manually:</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <a class="btn btn-secondary btn-sm" href="${h(liUrl)}" target="_blank" rel="noopener">Search ${h(company)} on LinkedIn ↗</a>
+            <button class="btn btn-ghost btn-sm" onclick="setJdMode(${idx},'paste')">Paste JD manually →</button>
+          </div>
+        </div>`;
+    }
+    if (statusEl) statusEl.textContent = '';
+  } finally {
+    if (btn)     btn.disabled = false;
+    if (spinner) spinner.classList.add('hidden');
+  }
+}
+
+// Render the cached/fresh job match card into the result div
+function showJobMatchResult(idx, match, label) {
+  const resultEl = document.getElementById(`find-job-result-${idx}`);
+  const statusEl = document.getElementById(`find-job-status-${idx}`);
+  if (!resultEl) return;
+
+  const searchedDaysAgo = match.foundAt ? Math.floor((Date.now() - new Date(match.foundAt)) / 86400000) : null;
+  const searchedLabel   = searchedDaysAgo > 0 ? `Searched ${searchedDaysAgo}d ago` : 'Searched today';
+
+  // Posted date badge
+  let postedBadge = '';
+  if (match.postedDate) {
+    const daysOld = Math.floor((Date.now() - new Date(match.postedDate)) / 86400000);
+    const freshColor = daysOld <= 7 ? 'var(--teal)' : daysOld <= 14 ? 'var(--amber)' : 'var(--muted)';
+    postedBadge = `<span style="font-size:11px;color:${freshColor};font-weight:600">📅 Posted ${daysOld === 0 ? 'today' : daysOld + 'd ago'}</span>`;
+  }
+
+  // Location badge
+  const locBadge = match.location
+    ? `<span style="font-size:11px;color:var(--muted)">📍 ${h(match.location)}</span>`
+    : '';
+
+  // Source badge
+  const sourceBadge = match.fromCareer
+    ? `<span style="font-size:10px;color:var(--faint)">from careers page</span>`
+    : `<span style="font-size:10px;color:var(--faint)">AI estimated</span>`;
+
+  resultEl.style.display = '';
+  resultEl.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 12px;font-size:12px">
+      <div style="font-weight:600;color:var(--text);margin-bottom:4px">📌 ${h(match.title)}</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        ${postedBadge}
+        ${locBadge}
+        ${sourceBadge}
+      </div>
+      ${match.summary ? `<div style="color:var(--muted);margin-bottom:6px">${h(match.summary)}</div>` : ''}
+      ${match.snippet ? `<div style="color:var(--faint);font-style:italic;margin-bottom:8px;font-size:11px;border-left:2px solid var(--border2);padding-left:8px">${h(match.snippet)}</div>` : ''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <a class="btn btn-teal btn-sm" href="${h(match.url)}" target="_blank" rel="noopener">View job ↗</a>
+        <button class="btn btn-primary btn-sm" onclick="generateMessage(${idx})">Generate message</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadJobIntoJd(${idx},'${h(match.url.replace(/'/g,"\\'"))}','${h(match.title.replace(/'/g,"\\'"))}')">Read full JD</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearJobMatch(${idx})" style="color:var(--muted)" title="Clear and search again">↻ Find again</button>
+      </div>
+      <div style="font-size:10px;color:var(--faint)">${searchedLabel}</div>
+    </div>`;
+  if (statusEl && label) statusEl.textContent = label;
+}
+
+function clearJobMatch(idx) {
+  const c = state.contacts[idx];
+  if (!c) return;
+  delete c._jobMatch;
+  saveContacts();
+  renderDrawerContent(idx); // re-render drawer to show the "Find best match" button fresh
+}
+
+// ── Company-level job match ───────────────────
+
+function renderCompanyJobMatchCard(company, match, coKeyName) {
+  const safeCompany = company.replace(/'/g, "\\'");
+  const searchedDaysAgo = match.foundAt ? Math.floor((Date.now() - new Date(match.foundAt)) / 86400000) : null;
+  const searchedLabel   = searchedDaysAgo > 0 ? `Searched ${searchedDaysAgo}d ago` : 'Searched today';
+
+  let postedBadge = '';
+  if (match.postedDate) {
+    const daysOld = Math.floor((Date.now() - new Date(match.postedDate)) / 86400000);
+    const freshColor = daysOld <= 7 ? 'var(--teal)' : daysOld <= 14 ? 'var(--amber)' : 'var(--muted)';
+    postedBadge = `<span style="font-size:11px;color:${freshColor};font-weight:600">📅 Posted ${daysOld === 0 ? 'today' : daysOld + 'd ago'}</span>`;
+  }
+  const locBadge   = match.location ? `<span style="font-size:11px;color:var(--muted)">📍 ${h(match.location)}</span>` : '';
+  const sourceBadge = match.fromCareer
+    ? `<span style="font-size:10px;color:var(--faint)">from careers page</span>`
+    : `<span style="font-size:10px;color:var(--faint)">AI estimated</span>`;
+
+  return `
+    <div style="font-size:12px">
+      <div style="font-weight:600;color:var(--text);margin-bottom:4px">📌 ${h(match.title)}</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:5px">
+        ${postedBadge}${locBadge}${sourceBadge}
+      </div>
+      ${match.summary ? `<div style="color:var(--muted);margin-bottom:5px;font-size:11px">${h(match.summary)}</div>` : ''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+        <a class="btn btn-teal btn-sm" href="${h(match.url)}" target="_blank" rel="noopener">View job ↗</a>
+        <button class="btn btn-primary btn-sm" onclick="tailorResumeForCompany('${safeCompany}')">📄 Tailor resume</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearCompanyJobMatch('${safeCompany}')" title="Search again">↻ Find again</button>
+      </div>
+      <div style="font-size:10px;color:var(--faint)">${searchedLabel}</div>
+    </div>`;
+}
+
+async function findBestJobMatchForCompany(company) {
+  const coKeyName = coKey(company);
+  const btn       = document.getElementById(`co-job-btn-${coKeyName}`);
+  const spinner   = document.getElementById(`co-job-spinner-${coKeyName}`);
+  const statusEl  = document.getElementById(`co-job-status-${coKeyName}`);
+  const cfg       = getAIConfig();
+
+  if (!cfg.apiKey && cfg.provider !== 'ollama') {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--red)">Add an AI key in Setup → Settings first.</span>';
+    return;
+  }
+
+  if (btn)     btn.disabled = true;
+  if (spinner) spinner.classList.remove('hidden');
+  if (statusEl) statusEl.textContent = 'Searching…';
+
+  const targetRole  = (state.profile.target || 'product manager').split(/[,;\/]/)[0].trim();
+  const locPrefs    = (() => { try { return JSON.parse(localStorage.getItem(LS.job_loc_prefs) || '[]'); } catch(e){ return []; } })();
+  const locPrefStr  = locPrefs.length ? locPrefs.map((l,i) => `${i+1}. ${l}`).join(', ') : (localStorage.getItem(LS.job_location) || 'any');
+  const seniority   = state.profile.currentLevel || '';
+  const today       = new Date().toISOString().split('T')[0];
+
+  const sharedContext = `Candidate profile:
+- Target role: "${targetRole}"${seniority ? `\n- Seniority: ${seniority}` : ''}
+- Background: ${state.profile.bg ? state.profile.bg.slice(0,200) : 'Senior professional'}
+- Location preferences (in order): ${locPrefStr}
+- Today's date: ${today}`;
+
+  let careersText = '';
+  const candidateUrls = [
+    `https://www.linkedin.com/company/${encodeURIComponent(company.toLowerCase().replace(/\s+/g,'-'))}/jobs/`,
+    `https://${company.toLowerCase().replace(/\s+/g,'')}.com/careers`,
+    `https://${company.toLowerCase().replace(/\s+/g,'')}.com/jobs`
+  ];
+  for (const tryUrl of candidateUrls) {
+    try {
+      const res = await fetch(`http://localhost:8080/proxy?url=${encodeURIComponent(tryUrl)}`, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.length > 400 && text.toLowerCase().includes(targetRole.split(' ')[0].toLowerCase())) {
+          careersText = text.slice(0, 6000);
+          break;
+        }
+      }
+    } catch(e) { /* proxy unavailable — fall through */ }
+  }
+
+  try {
+    let prompt;
+    if (careersText) {
+      prompt = `You are helping a job seeker find the best matching open role at ${company}.
+
+${sharedContext}
+
+Careers page content (partial HTML/text):
+${careersText}
+
+RULES:
+1. Only consider jobs posted within the last 30 days. Exclude older postings.
+2. Match seniority — skip roles clearly below or above the candidate's level.
+3. If multiple roles qualify, rank by location preference order above.
+4. Return the single best match only.
+
+Return ONLY this JSON (no other text):
+{"found":true,"title":"exact job title","url":"full job URL if visible else null","location":"job location as listed","postedDate":"YYYY-MM-DD or null if not visible","summary":"1 sentence on why this matches","snippet":"1-2 line excerpt from the JD"}
+
+If no role matches, return:
+{"found":false,"reason":"specific reason e.g. no roles posted in last 30 days / no senior roles / location mismatch"}`;
+    } else {
+      prompt = `You are helping a job seeker find the right open role at ${company}.
+
+${sharedContext}
+
+The company careers page wasn't directly accessible. Based on your knowledge of ${company}'s typical hiring:
+- Only suggest a role if you are confident they are actively hiring for it and it would have been posted recently (within ~30 days).
+- If not confident, set found to false.
+
+Return ONLY this JSON:
+{"found":true,"title":"most likely current job title","url":"${company.toLowerCase().replace(/\s+/g,'')}.com/careers","location":"likely location","postedDate":null,"summary":"1 sentence on why this matches","snippet":""}
+
+Or if not confident: {"found":false,"reason":"brief reason"}`;
+    }
+
+    const raw    = await callAI(prompt, 500, cfg.provider === 'anthropic');
+    const match  = raw.match(/\{[\s\S]*?\}/);
+    if (!match) throw new Error('no json');
+    const result = JSON.parse(match[0]);
+
+    if (result.found) {
+      const jobUrl = result.url || getJobLinks(company, targetRole)[0].url;
+      state.COMPANY_INTEL[coKeyName] = state.COMPANY_INTEL[coKeyName] || {};
+      state.COMPANY_INTEL[coKeyName]._jobMatch = {
+        title:      result.title,
+        url:        jobUrl,
+        location:   result.location || '',
+        postedDate: result.postedDate || null,
+        summary:    result.summary || '',
+        snippet:    result.snippet || '',
+        foundAt:    new Date().toISOString(),
+        fromCareer: !!careersText
+      };
+      saveCompanyIntel();
+      renderContactsList(); // re-render to show result card
+    } else {
+      throw new Error(result.reason || 'no match found');
+    }
+  } catch(e) {
+    const reason   = e.message || '';
+    const liUrl    = getJobLinks(company, targetRole)[0].url;
+    let message;
+
+    if (!careersText) {
+      // Scraping failed — the careers page is JS-rendered or blocked.
+      // Don't say "no recent jobs" — we simply couldn't check.
+      message = `🌐 Couldn't access live job listings for ${h(company)} (page is JS-rendered). Check manually:`;
+    } else {
+      // We had real content but no qualifying role was found
+      const isStale = reason.toLowerCase().includes('30 days') || reason.toLowerCase().includes('old') || reason.toLowerCase().includes('recent');
+      const isLevel = reason.toLowerCase().includes('senior') || reason.toLowerCase().includes('level') || reason.toLowerCase().includes('junior');
+      const isLoc   = reason.toLowerCase().includes('location') || reason.toLowerCase().includes('remote');
+      const icon    = isStale ? '📅' : isLevel ? '📊' : isLoc ? '📍' : '🔍';
+      const detail  = isStale ? 'No roles posted in the last 30 days matching your target.'
+                    : isLevel ? 'No roles at your seniority level found right now.'
+                    : isLoc   ? 'No roles in your preferred locations found.'
+                    : 'No matching open role found on their careers page.';
+      message = `${icon} ${detail}`;
+    }
+
+    if (btn) btn.disabled = false;
+    if (spinner) spinner.classList.add('hidden');
+    if (statusEl) {
+      statusEl.innerHTML = `<span style="color:var(--muted);font-size:11px">${message} — <a class="btn btn-ghost btn-sm" href="${h(liUrl)}" target="_blank" rel="noopener" style="font-size:11px">Search manually ↗</a></span>`;
+    }
+    return;
+  }
+  if (btn)     btn.disabled = false;
+  if (spinner) spinner.classList.add('hidden');
+}
+
+function clearCompanyJobMatch(company) {
+  const coKeyName = coKey(company);
+  if (state.COMPANY_INTEL[coKeyName]) {
+    delete state.COMPANY_INTEL[coKeyName]._jobMatch;
+    saveCompanyIntel();
+  }
+  renderContactsList();
+}
+
+async function tailorResumeForCompany(company) {
+  const coKeyName = coKey(company);
+  const match = state.COMPANY_INTEL[coKeyName]?._jobMatch;
+  if (!match) return;
+
+  // Find the best-scored contact at this company to use as a proxy for generateResume
+  const contact = state.contacts
+    .filter(c => coKey(c.company || '') === coKeyName)
+    .sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+  if (!contact) return;
+
+  const idx = state.contacts.indexOf(contact);
+
+  // Pre-set JD context from the company job match
+  contact.savedRole = match.title;
+  contact._jdMode   = 'paste';
+  contact._jdText   = [match.title + ' at ' + company, match.summary, match.snippet].filter(Boolean).join('\n\n');
+  saveContacts();
+
+  // Delegate to existing resume generation (opens modal)
+  await generateResume(idx);
+}
+
+function loadJobIntoJd(idx, url, title) {
+  // Pre-fill role input and trigger a JD fetch from URL
+  const c = state.contacts[idx];
+  if (!c) return;
+  c.savedRole = title;
+  c._jdMode   = 'url';
+  saveContacts();
+  // Re-render drawer so the URL input appears, then trigger fetch
+  renderDrawerContent(idx);
+  setTimeout(() => {
+    const input = document.getElementById(`role-input-${idx}`);
+    if (input) input.value = url;
+    fetchJdContent(idx);
+  }, 100);
+}
+
+function getJdContext(idx) {
+  const c = state.contacts[idx];
+  if (!c) return '';
+  if (c._jdMode === 'paste') {
+    const ta = document.getElementById(`jd-paste-${idx}`);
+    return (ta ? ta.value : c._jdText) || '';
+  }
+  // URL mode — prefer fetched full text, fall back to role-input value
+  if (c._jdFetched) return c._jdFetched;
+  const input = document.getElementById(`role-input-${idx}`);
+  return input ? input.value.trim() : (c.savedRole || '');
+}
+
+// ── Resume fact-checker ───────────────────────
+function parseResumeForFacts(text) {
+  if (!text) return { dates: [], email: '', phone: '', linkedin: '' };
+  const lines = text.split('\n');
+  const dates  = [];
+  const dateRe = /([A-Za-z]{3,9}\.?\s+\d{4}|\d{4})\s*(?:[–—\-]+|to)\s*([A-Za-z]{3,9}\.?\s+\d{4}|\d{4}|[Pp]resent|[Cc]urrent)/g;
+  lines.forEach((line, i) => {
+    let m;
+    dateRe.lastIndex = 0;
+    while ((m = dateRe.exec(line)) !== null) {
+      // Get a bit of surrounding context for company name guessing
+      const ctx = lines.slice(Math.max(0, i-2), i+2).join(' ').replace(/\s+/g, ' ').slice(0,120);
+      dates.push({ from: m[1], to: m[2], context: ctx });
+    }
+  });
+  const emailMatch   = text.match(/[\w.+-]+@[\w-]+\.[\w.]{2,}/);
+  const phoneMatch   = text.match(/\+?[\d][\d\s\-\(\)\.]{8,17}(?=\D|$)/);
+  const linkedinMatch= text.match(/(?:linkedin\.com\/in\/|linkedin\.com\/pub\/)([\w\-]+)/i);
+  return {
+    dates,
+    email:    emailMatch   ? emailMatch[0]        : '',
+    phone:    phoneMatch   ? phoneMatch[0].trim() : '',
+    linkedin: linkedinMatch? linkedinMatch[0]     : ''
+  };
+}
+
+function openResumeChecker(idx) {
+  const profile  = state.profile;
+  const positions = [...state.POSITIONS_DATA]
+    .sort((a, b) => (b.from||'').localeCompare(a.from||''))
+    .slice(0, 10);
+  const rawResume = localStorage.getItem(LS.resume) || '';
+  const parsed    = parseResumeForFacts(rawResume);
+
+  const modal = document.getElementById('checker-modal');
+  if (!modal) return;
+
+  // ── Date comparison table ──
+  const fmtDate = iso => {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleDateString('en-GB',{month:'short',year:'numeric'}); } catch(e){ return iso.slice(0,7); }
+  };
+  const isPresent = d => !d || d >= new Date().toISOString().slice(0,7);
+
+  // Match LinkedIn positions to resume date entries by proximity
+  const posRows = positions.map(p => {
+    const liFrom = fmtDate(p.from);
+    const liTo   = isPresent(p.to) ? 'Present' : fmtDate(p.to);
+    const liFromYear = (p.from||'').slice(0,4);
+    const liToYear   = isPresent(p.to) ? 'present' : (p.to||'').slice(0,4);
+    // Find best matching resume date entry (same year in context or in date string)
+    const match = parsed.dates.find(d =>
+      d.from.includes(liFromYear) || d.context.toLowerCase().includes((p.co_display||'').toLowerCase().split(' ')[0].toLowerCase())
+    );
+    const resFrom = match ? match.from : '—';
+    const resTo   = match ? match.to   : '—';
+    const exact   = match && (resFrom.includes(liFromYear)) && (resTo.toLowerCase().includes(liToYear) || (isPresent(p.to) && /present|current/i.test(resTo)));
+    const hasMatch= match !== undefined;
+    return { p, liFrom, liTo, resFrom, resTo, exact, hasMatch };
+  });
+
+  // ── Contact info check ──
+  const profEmail   = profile.email    || '';
+  const profPhone   = profile.phone    || '';
+  const profLinkedin= profile.linkedinUrl || '';
+
+  const infoRows = [
+    { field:'Email',    profile: profEmail,    resume: parsed.email,    match: profEmail    && parsed.email    && profEmail.toLowerCase()===parsed.email.toLowerCase() },
+    { field:'Phone',    profile: profPhone,    resume: parsed.phone,    match: profPhone    && parsed.phone    && profPhone.replace(/\D/g,'').slice(-8)===parsed.phone.replace(/\D/g,'').slice(-8) },
+    { field:'LinkedIn', profile: profLinkedin, resume: parsed.linkedin, match: profLinkedin && parsed.linkedin && profLinkedin.toLowerCase().includes(parsed.linkedin.toLowerCase().split('/').pop()) }
+  ];
+
+  const hasDateMismatch = posRows.some(r => r.hasMatch && !r.exact);
+  const hasInfoMismatch = infoRows.some(r => (r.profile || r.resume) && !r.match);
+
+  modal.innerHTML = `
+  <div style="background:var(--surface);border-radius:var(--radius);max-width:680px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 16px 48px rgba(0,0,0,0.25)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">🔍 Resume fact-check</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Comparing LinkedIn data · pasted resume · WarmPath profile</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('checker-modal').style.display='none'">✕ Close</button>
+    </div>
+
+    ${!rawResume && positions.length === 0 ? `
+      <div style="padding:16px;background:var(--surface2);border-radius:var(--radius);color:var(--muted);font-size:13px">
+        No resume text or LinkedIn positions found yet.<br>
+        Add your resume text in <strong>Setup → Profile</strong> and import your LinkedIn archive for the best comparison.
+      </div>` : `
+
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">Employment dates
+      <span style="font-weight:400;font-size:12px;color:var(--muted)">(LinkedIn is the source of truth — flag any differences before sending your resume)</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border)">
+          <th style="text-align:left;padding:5px 8px;font-size:11px;text-transform:uppercase;color:var(--faint);letter-spacing:.5px">Company</th>
+          <th style="text-align:left;padding:5px 8px;font-size:11px;text-transform:uppercase;color:var(--faint);letter-spacing:.5px">LinkedIn</th>
+          <th style="text-align:left;padding:5px 8px;font-size:11px;text-transform:uppercase;color:var(--faint);letter-spacing:.5px">Pasted resume</th>
+          <th style="padding:5px 8px;font-size:11px;text-transform:uppercase;color:var(--faint);letter-spacing:.5px">Match</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${posRows.map(row => `
+          <tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:6px 8px;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h(row.p.title||'')} at ${h(row.p.co_display||'')}">${h(row.p.co_display||'—')}<div style="font-size:11px;color:var(--muted);font-weight:400">${h(row.p.title||'')}</div></td>
+            <td style="padding:6px 8px;color:var(--teal);font-family:monospace;font-size:11px">${h(row.liFrom)} – ${h(row.liTo)}</td>
+            <td style="padding:6px 8px;font-family:monospace;font-size:11px;color:${row.hasMatch?'inherit':'var(--faint)'}">${row.hasMatch ? h(row.resFrom)+' – '+h(row.resTo) : '<span style="font-style:italic">not found</span>'}</td>
+            <td style="padding:6px 8px;text-align:center;font-size:15px">${!row.hasMatch ? '<span title="Date not found in resume text">—</span>' : row.exact ? '✅' : '<span style="color:var(--amber)" title="Dates differ between sources">⚠️</span>'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+
+    ${hasDateMismatch ? `<div style="padding:8px 12px;background:#fefce8;border:1px solid #fde047;border-radius:6px;font-size:12px;color:#713f12;margin-bottom:14px">
+      ⚠️ <strong>Some dates differ.</strong> Your pasted resume may have less precise dates (e.g. year only vs month+year). LinkedIn dates are used as the authoritative source when generating your resume — no action needed unless LinkedIn is wrong.</div>` : ''}
+
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">Contact info</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:18px">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border)">
+          <th style="text-align:left;padding:5px 8px;font-size:11px;text-transform:uppercase;color:var(--faint);letter-spacing:.5px">Field</th>
+          <th style="text-align:left;padding:5px 8px;font-size:11px;text-transform:uppercase;color:var(--faint);letter-spacing:.5px">WarmPath profile</th>
+          <th style="text-align:left;padding:5px 8px;font-size:11px;text-transform:uppercase;color:var(--faint);letter-spacing:.5px">Found in pasted resume</th>
+          <th style="padding:5px 8px;font-size:11px;text-transform:uppercase;color:var(--faint);letter-spacing:.5px">Match</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${infoRows.map(row => `
+          <tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:6px 8px;font-weight:600">${h(row.field)}</td>
+            <td style="padding:6px 8px;font-family:monospace;font-size:11px;color:${row.profile?'inherit':'var(--faint)'}">${row.profile ? h(row.profile) : '<span style="font-style:italic">not set — add in Profile</span>'}</td>
+            <td style="padding:6px 8px;font-family:monospace;font-size:11px;color:${row.resume?'inherit':'var(--faint)'}">${row.resume ? h(row.resume) : '<span style="font-style:italic">not found in text</span>'}</td>
+            <td style="padding:6px 8px;text-align:center;font-size:15px">${(!row.profile && !row.resume) ? '—' : (!row.profile || !row.resume) ? '<span title="Only found in one source">—</span>' : row.match ? '✅' : '<span style="color:var(--red)" title="Values differ">❌</span>'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+
+    ${hasInfoMismatch ? `<div style="padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;font-size:12px;color:#991b1b;margin-bottom:14px">
+      ❌ <strong>Contact info mismatch.</strong> The email/phone/LinkedIn found in your pasted resume differs from what's saved in your WarmPath profile. Update <strong>Setup → Profile</strong> with the correct value — it will be used on all future resumes.</div>` : ''}
+
+    <div style="padding:10px 12px;background:var(--surface2);border-radius:6px;font-size:12px;color:var(--muted);line-height:1.5">
+      ℹ️ WarmPath uses your <strong>LinkedIn positions as the authoritative employment dates</strong> when generating a resume. The pasted resume text is used for bullet points and achievements. This check helps you spot anything that might cause a date mismatch on your final resume.
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="generateResume(${idx});document.getElementById('checker-modal').style.display='none'">Generate resume now →</button>
+      <button class="btn btn-ghost btn-sm" onclick="switchTab('setup');switchSetupTab('profile');document.getElementById('checker-modal').style.display='none'">Edit profile →</button>
+    </div>
+    `}
+  </div>`;
+
+  modal.style.display = 'flex';
+}
+
 function logAsSent(idx) {
   const c = state.contacts[idx];
   if (!c) return;
-  const ta       = document.getElementById(`msg-ta-${idx}`);
-  const roleInput= document.getElementById(`role-input-${idx}`);
-  const msg      = ta?.value || '';
-  const role     = roleInput?.value?.trim() || '';
+  const ta        = document.getElementById(`msg-ta-${idx}`);
+  const roleInput = document.getElementById(`role-input-${idx}`);
+  const msg       = ta?.value || '';
+  const role      = (c._jdMode === 'paste' ? '' : roleInput?.value?.trim()) || c.savedRole || '';
+
+  // ── Structured interaction entry ──
+  if (!c._interactions) c._interactions = [];
+  const entry = {
+    id:       Date.now().toString(36) + Math.random().toString(36).slice(2,5),
+    date:     new Date().toISOString(),
+    type:     'linkedin',
+    message:  msg,
+    role:     role,
+    response: null,
+    note:     ''
+  };
+  c._interactions.unshift(entry); // newest first
+  logActivity('message_sent', { contactIdx: idx, role });
 
   c.status        = 'Message sent';
   c.lastContacted = new Date().toISOString().slice(0,10);
   if (role) c.savedRole = role;
   if (msg) {
-    const preview = msg.slice(0,120) + (msg.length > 120 ? '…' : '');
-    c.notes = (c.notes ? c.notes + '\n' : '') + `[${c.lastContacted}] ${preview}`;
+    c._lastSentMsg  = msg;
+    c._lastSentDate = new Date().toISOString();
   }
   saveContacts();
   updateNavCounts();
-  setDrawerStatus(idx, 'Logged as sent ✓', 'success');
-  // refresh the grade/status badge on the card without closing the drawer
+  setDrawerStatus(idx, 'Logged ✓', 'success');
+
+  // Refresh card badge
   const nameRow = document.querySelector(`#card-${idx} .contact-name-row`);
   if (nameRow) {
-    const badges = nameRow.querySelectorAll('.badge');
-    badges.forEach(b => b.remove());
+    nameRow.querySelectorAll('.badge').forEach(b => b.remove());
     nameRow.insertAdjacentHTML('beforeend', gradeBadge(c.grade) + statusBadge(c.status));
   }
+  // Show inline response prompt immediately after logging
+  showResponsePrompt(idx, entry.id);
+}
+
+function showResponsePrompt(idx, entryId) {
+  // Remove any existing prompt
+  document.getElementById(`response-prompt-${idx}`)?.remove();
+
+  // Insert after the drawer-actions row
+  const actionsEl = document.querySelector(`#side-drawer-body .drawer-actions`);
+  if (!actionsEl) return;
+
+  const div = document.createElement('div');
+  div.id = `response-prompt-${idx}`;
+  div.style.cssText = 'margin-top:10px;padding:10px 12px;background:var(--teal-bg);border:1px solid #b0e4d4;border-radius:var(--radius);width:100%;box-sizing:border-box';
+  div.innerHTML = `
+    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Did they respond? <span style="font-weight:400;color:var(--muted)">(you can also log later)</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="btn btn-sm btn-teal"      onclick="saveInteractionResponse(${idx},'${entryId}','replied')">Replied ✓</button>
+      <button class="btn btn-sm btn-ghost"     onclick="saveInteractionResponse(${idx},'${entryId}','positive')">Positive 🙂</button>
+      <button class="btn btn-sm btn-ghost"     onclick="saveInteractionResponse(${idx},'${entryId}','no_response')">No response</button>
+      <button class="btn btn-sm btn-ghost"     onclick="saveInteractionResponse(${idx},'${entryId}','not_interested')">Not interested</button>
+    </div>
+    <input id="response-note-inp-${idx}" class="form-input" style="font-size:12px;padding:5px 8px;margin-bottom:7px;width:100%;box-sizing:border-box"
+      placeholder="What did they say? (optional quick note)">
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-primary btn-sm" onclick="saveInteractionNote(${idx},'${entryId}')">Save note</button>
+      <button class="btn btn-ghost btn-sm"   onclick="document.getElementById('response-prompt-${idx}')?.remove()">Skip</button>
+    </div>`;
+  actionsEl.insertAdjacentElement('afterend', div);
+  div.querySelector('input')?.focus();
+}
+
+function saveInteractionResponse(idx, entryId, response) {
+  const c = state.contacts[idx];
+  if (!c?._interactions) return;
+  const entry = c._interactions.find(e => e.id === entryId);
+  if (!entry) return;
+
+  const noteInput = document.getElementById(`response-note-inp-${idx}`);
+  entry.response = response;
+  if (noteInput?.value?.trim()) entry.note = noteInput.value.trim();
+  if (response === 'replied' || response === 'positive') {
+    c.status = 'Replied';
+    logActivity('response_received', { contactIdx: idx, response });
+  }
+
+  saveContacts();
+  updateNavCounts();
+  document.getElementById(`response-prompt-${idx}`)?.remove();
+  setDrawerStatus(idx, `Response saved: ${response.replace('_',' ')} ✓`, 'success');
+  renderDrawerContent(idx);
+}
+
+function saveInteractionNote(idx, entryId) {
+  const c = state.contacts[idx];
+  if (!c?._interactions) return;
+  const entry = c._interactions.find(e => e.id === entryId);
+  if (!entry) return;
+
+  const noteInput = document.getElementById(`response-note-inp-${idx}`);
+  entry.note = noteInput?.value?.trim() || '';
+  saveContacts();
+  document.getElementById(`response-prompt-${idx}`)?.remove();
+  setDrawerStatus(idx, 'Note saved ✓', 'success');
+  renderDrawerContent(idx);
+}
+
+function renderInteractionTimeline(c, idx) {
+  const interactions = c._interactions || [];
+  if (interactions.length === 0) {
+    return `<div style="font-size:12px;color:var(--faint);font-style:italic;padding:8px 0">No interactions logged yet — click "✓ Log as sent" after sending a message.</div>`;
+  }
+  const responseStyle = {
+    'replied':        { color:'var(--teal)',  label:'Replied ✓' },
+    'positive':       { color:'var(--teal)',  label:'Positive 🙂' },
+    'no_response':    { color:'var(--muted)', label:'No response' },
+    'not_interested': { color:'var(--coral)', label:'Not interested' }
+  };
+  return interactions.map((entry, i) => {
+    const d   = new Date(entry.date);
+    const ds  = d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
+    const res = entry.response ? responseStyle[entry.response] : null;
+    return `
+    <div style="display:flex;gap:10px;padding:10px 0;${i < interactions.length-1 ? 'border-bottom:1px solid var(--border2)' : ''}">
+      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+        <div style="width:9px;height:9px;border-radius:50%;background:${res ? res.color : 'var(--border2)'};margin-top:3px"></div>
+        ${i < interactions.length-1 ? '<div style="width:1px;flex:1;background:var(--border2);margin-top:4px"></div>' : ''}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+          <span style="font-size:11px;font-weight:700;color:var(--muted)">${ds}</span>
+          <span style="font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1px 6px;color:var(--faint)">${entry.type||'linkedin'}</span>
+          ${entry.role ? `<span style="font-size:11px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px" title="${h(entry.role)}">${h(entry.role.slice(0,28))}${entry.role.length>28?'…':''}</span>` : ''}
+        </div>
+        ${entry.message ? `<div style="font-size:12px;color:var(--muted);background:var(--surface2);padding:5px 8px;border-radius:5px;margin-bottom:5px;font-style:italic;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">"${h(entry.message.slice(0,120))}${entry.message.length>120?'…':''}"</div>` : ''}
+        <div style="font-size:12px">
+          ${res ? `<span style="color:${res.color};font-weight:600">${res.label}</span>` : `<span style="color:var(--faint);font-style:italic">response not logged</span> <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:1px 6px;min-height:0" onclick="showResponsePrompt(${idx},'${entry.id}')">Log →</button>`}
+        </div>
+        ${entry.note ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">💬 ${h(entry.note)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function loadCompanyIntel(idx) {
@@ -2734,10 +4260,9 @@ async function loadCompanyIntel(idx) {
     }
   });
 
-  const prompt = `What do you know about "${c.company}" as a place to work?
-Return ONLY a JSON object:
-{"glassdoorRating":number_or_null,"salaryRange":"e.g. ₹35-55L for Staff PM or null","reviewSentiment":"one sentence or null"}
-No other text. Use null for unknown fields.`;
+  const prompt = `What is the Glassdoor overall company rating for "${c.company}"?
+Return ONLY a JSON object: {"glassdoorRating":number_or_null}
+Use null if unknown. No other text.`;
 
   try {
     // Try with web search first (Anthropic only), fall back to plain
@@ -2898,13 +4423,32 @@ function updateContactGrade(idx, grade) {
 
 function updateContactStatus(idx, status) {
   if (!state.contacts[idx]) return;
-  state.contacts[idx].status = status;
-  if (status !== 'Not contacted' && !state.contacts[idx].lastContacted) {
-    state.contacts[idx].lastContacted = new Date().toISOString().slice(0,10);
+  const c = state.contacts[idx];
+  c.status = status;
+  if (status !== 'Not contacted' && !c.lastContacted) {
+    c.lastContacted = new Date().toISOString().slice(0,10);
   }
   saveContacts();
   updateNavCounts();
-  renderContactsList();
+
+  // Update badge in-place — do NOT call renderContactsList() here.
+  // In company view, renderContactsList() replaces listEl.innerHTML while the
+  // select's onchange is still active, which crashes Safari (event fires on
+  // a destroyed element → "A problem repeatedly occurred" crash loop).
+  const nameRow = document.querySelector(`#card-${idx} .contact-name-row`);
+  if (nameRow) {
+    nameRow.querySelectorAll('.badge:not(.badge-referral)').forEach(b => b.remove());
+    nameRow.insertAdjacentHTML('beforeend', gradeBadge(c.grade) + statusBadge(c.status));
+  }
+
+  // If a status filter is active this contact may now be hidden — defer re-render
+  // until after the event fully completes so the select is no longer live
+  if (contactFilters.status && contactFilters.status !== status) {
+    setTimeout(() => renderContactsList(), 0);
+  }
+
+  // Refresh drawer if this contact is open
+  if (sideDrawerIdx === idx) renderDrawerContent(idx);
 }
 
 // ── Contact note (feedback received) ──────────
@@ -3102,16 +4646,16 @@ function loadState() {
   try { state.SKILLS          = JSON.parse(localStorage.getItem(LS.skills)|| '[]'); } catch(e){ state.SKILLS = []; }
   try {
     const raw = localStorage.getItem(LS.custom_targets) || localStorage.getItem(LS.targets) || '[]';
-    const custom = JSON.parse(raw).map(t => t.toLowerCase().trim()).filter(Boolean);
-    state.TARGET_COS = [...new Set([...DEFAULT_TARGET_COS, ...custom])];
-  } catch(e){}
+    state.TARGET_COS = JSON.parse(raw).map(t => t.toLowerCase().trim()).filter(Boolean);
+  } catch(e){ state.TARGET_COS = []; }
   try { state.COMPANY_INTEL = JSON.parse(localStorage.getItem(LS.company_intel) || '{}'); } catch(e){ state.COMPANY_INTEL = {}; }
+  try { state.ACTIVITY_LOG  = JSON.parse(localStorage.getItem(LS.activity_log)  || '[]'); } catch(e){ state.ACTIVITY_LOG = []; }
 }
 
 function saveCustomTargets(arr) {
   const clean = arr.map(t => t.toLowerCase().trim()).filter(Boolean);
   localStorage.setItem(LS.custom_targets, JSON.stringify(clean));
-  state.TARGET_COS = [...new Set([...DEFAULT_TARGET_COS, ...clean])];
+  state.TARGET_COS = clean;
 }
 
 // Normalise a company name → cache key (lower, trimmed, strip Ltd/Inc/etc)
@@ -3121,8 +4665,97 @@ function coKey(name) {
     .replace(/\s+/g, ' ').trim();
 }
 
+// Stronger normalisation used only for company-view grouping.
+// Strips case, punctuation, and common noise suffixes so that
+// "ThoughtWorks", "Thoughtworks", "thoughtworks technologies" all merge.
+// Deliberately conservative — won't merge "Amazon" with "Amazon Web Services".
+const CO_NOISE = /\b(technologies|technology|tech|solutions|services|software|systems|global|india|group|consulting|consultancy|corporation|private|pvt|limited|ltd|inc|llc|corp|co)\b\.?/gi;
+function coGroupKey(name) {
+  return (name || '').toLowerCase()
+    .replace(CO_NOISE, '')
+    .replace(/[^a-z0-9]/g, '')  // strip spaces, dots, dashes, ampersands
+    .trim();
+}
+
 function saveCompanyIntel() {
   try { localStorage.setItem(LS.company_intel, JSON.stringify(state.COMPANY_INTEL)); } catch(e){}
+}
+
+// ── Activity tracking ─────────────────────────
+// Lightweight event log: records user actions, never in sample mode
+function logActivity(type, meta = {}) {
+  if (isSampleMode()) return; // don't pollute log with demo interactions
+  if (!state.ACTIVITY_LOG) state.ACTIVITY_LOG = [];
+  state.ACTIVITY_LOG.push({ type, date: new Date().toISOString(), ...meta });
+  // Keep only last 90 days, max 2000 entries
+  const cutoff = Date.now() - 90 * 86400000;
+  state.ACTIVITY_LOG = state.ACTIVITY_LOG
+    .filter(e => new Date(e.date).getTime() > cutoff)
+    .slice(-2000);
+  try { localStorage.setItem(LS.activity_log, JSON.stringify(state.ACTIVITY_LOG)); } catch(e){}
+}
+
+function getActivityStats(daysAgo = 0, span = 7) {
+  const end   = Date.now() - daysAgo * 86400000;
+  const start = end - span * 86400000;
+  const log   = (state.ACTIVITY_LOG || []).filter(e => {
+    const t = new Date(e.date).getTime();
+    return t >= start && t < end;
+  });
+  const sent       = log.filter(e => e.type === 'message_sent').length;
+  const responses  = log.filter(e => e.type === 'response_received').length;
+  const resumes    = log.filter(e => e.type === 'resume_generated').length;
+  const researched = new Set(
+    log.filter(e => e.type === 'drawer_opened').map(e => `${e.contactIdx}-${new Date(e.date).toDateString()}`)
+  ).size; // unique contact-days
+  const replyRate  = sent > 0 ? Math.round(responses / sent * 100) : 0;
+  return { sent, responses, resumes, researched, replyRate };
+}
+
+function renderActivityStrip() {
+  if (isSampleMode()) return ''; // strip hidden in demo mode
+  const log = state.ACTIVITY_LOG || [];
+  if (log.length === 0) return ''; // nothing tracked yet — don't show empty strip
+
+  const tw = getActivityStats(0, 7);   // this week
+  const lw = getActivityStats(7, 7);   // last week
+
+  const trendSent = tw.sent - lw.sent;
+  const trendArrow = trendSent > 0 ? `<span style="color:var(--teal)">↑${trendSent}</span>`
+                   : trendSent < 0 ? `<span style="color:var(--coral)">↓${Math.abs(trendSent)}</span>`
+                   : `<span style="color:var(--muted)">→</span>`;
+
+  return `
+  <details id="activity-strip" style="margin-bottom:14px">
+    <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:0;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px;font-size:12px">
+      <span style="font-weight:600;color:var(--text);margin-right:10px">📊 This week</span>
+      <span style="color:var(--muted);margin-right:8px">${tw.sent} sent</span>
+      ${tw.responses > 0 ? `<span style="color:var(--teal);font-weight:600;margin-right:8px">${tw.responses} replied (${tw.replyRate}%)</span>` : ''}
+      ${tw.resumes  > 0 ? `<span style="color:var(--purple);margin-right:8px">${tw.resumes} resume${tw.resumes>1?'s':''}</span>` : ''}
+      <span style="margin-left:auto;font-size:11px">${trendArrow} vs last week &nbsp;▾</span>
+    </summary>
+    <div style="padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius)">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">
+        ${[
+          { label:'Outreaches sent',  val: tw.sent,       prev: lw.sent,       color:'var(--text)' },
+          { label:'Replies received', val: tw.responses,  prev: lw.responses,  color:'var(--teal)' },
+          { label:'Reply rate',       val: tw.replyRate+'%', prev: null,        color: tw.replyRate>=30?'var(--teal)':tw.replyRate>=15?'var(--amber)':'var(--coral)' },
+          { label:'Resumes tailored', val: tw.resumes,    prev: lw.resumes,    color:'var(--purple)' }
+        ].map(s => `
+          <div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 4px">
+            <div style="font-size:20px;font-weight:700;color:${s.color};line-height:1.2">${s.val}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${s.label}</div>
+            ${s.prev !== null ? `<div style="font-size:10px;color:var(--faint);margin-top:1px">${s.prev} last week</div>` : ''}
+          </div>`).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--faint)">
+        Contacts researched this week: <strong style="color:var(--text)">${tw.researched}</strong>
+        &nbsp;·&nbsp; All-time messages sent: <strong style="color:var(--text)">${log.filter(e=>e.type==='message_sent').length}</strong>
+        &nbsp;·&nbsp; All-time replies: <strong style="color:var(--teal)">${log.filter(e=>e.type==='response_received').length}</strong>
+        ${log.filter(e=>e.type==='message_sent').length > 0 ? `&nbsp;·&nbsp; All-time reply rate: <strong style="color:var(--text)">${Math.round(log.filter(e=>e.type==='response_received').length/log.filter(e=>e.type==='message_sent').length*100)}%</strong>` : ''}
+      </div>
+    </div>
+  </details>`;
 }
 
 function getCustomTargets() {
@@ -3635,7 +5268,10 @@ async function processZipFile(file) {
 async function generateResume(idx) {
   const c        = state.contacts[idx];
   const profile  = state.profile;
-  const roleHint = (document.getElementById(`role-input-${idx}`)?.value || '').trim();
+  const jdContext = getJdContext(idx);
+  const rawRoleInput = (document.getElementById(`role-input-${idx}`)?.value || c?.savedRole || '').trim();
+  // Prefer fetched/pasted JD title; fall back to manual input
+  const roleHint = (c?._jdFetchedTitle && c._jdMode !== 'paste') ? c._jdFetchedTitle : rawRoleInput;
   const cfg      = getAIConfig();
 
   setDrawerStatus(idx, 'Building resume…', 'info');
@@ -3644,7 +5280,7 @@ async function generateResume(idx) {
     .sort((a, b) => (b.from || '').localeCompare(a.from || ''))
     .slice(0, 8); // cap at 8 roles to stay within token budget
 
-  // Format positions for the prompt
+  // Format positions for the prompt — LinkedIn dates are authoritative
   const posText = positions.map(p => {
     const from = p.from ? p.from.slice(0,7) : '';
     const to   = p.to && p.to < new Date().toISOString() ? p.to.slice(0,7) : 'Present';
@@ -3652,12 +5288,20 @@ async function generateResume(idx) {
   }).join('\n');
 
   const skills = state.SKILLS.slice(0, 20).join(', ');
-  const targetRole = roleHint || profile.target || 'a senior professional role';
+  // If roleHint is a URL, use it as AI context but display profile.target as the clean role name
+  const roleIsUrl  = /^https?:\/\//i.test(roleHint);
+  const displayRole = roleIsUrl ? (profile.target || 'a senior professional role') : (roleHint || profile.target || 'a senior professional role');
+  const targetRole  = roleHint || profile.target || 'a senior professional role'; // full value for AI context
   const company    = c?.company || '';
-  const pastedResume = localStorage.getItem(LS.resume) || '';
+
+  // Strip non-profile URLs from pasted resume (PDF copy-paste embeds company/job links as text)
+  const rawPasted = localStorage.getItem(LS.resume) || '';
+  const pastedResume = rawPasted
+    .replace(/https?:\/\/(?!(?:www\.)?linkedin\.com\/in\/)\S+/g, '') // keep only linkedin.com/in/ URLs
+    .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 
   if (!cfg.apiKey && cfg.provider !== 'ollama') {
-    const resumeData = buildStaticResume(profile, positions, skills, targetRole, company);
+    const resumeData = buildStaticResume(profile, positions, skills, displayRole, company);
     openResumeModal(resumeData, profile.name);
     setDrawerStatus(idx, 'Resume ready (template — no AI key)', 'info');
     return;
@@ -3676,10 +5320,15 @@ Headline: ${profile.headline || ''}
 Background: ${profile.bg || 'Senior professional'}
 Current level: ${profile.currentLevel || ''}
 Location: ${profile.location || ''}
+Target role: ${displayRole}${roleIsUrl ? `\nJob URL for context (do NOT include in output): ${roleHint}` : ''}
 Company type preference: ${profile.companyType || 'any'}
 ${skills ? `Skills: ${skills}` : ''}
 
-TARGET ROLE: ${targetRole}${company ? ` at ${company}` : ''}
+TARGET ROLE: ${displayRole}${company ? ` at ${company}` : ''}
+${roleIsUrl ? `JOB URL (for context only — do NOT include in output): ${roleHint}` : ''}
+${jdContext && jdContext !== roleHint && !roleIsUrl ? `JOB DESCRIPTION (use to tailor bullets and summary):\n${jdContext.slice(0, 1500)}` : ''}
+${jdContext && jdContext !== roleHint && !roleIsUrl ? '' : ''}
+EMPLOYMENT DATE AUTHORITY: The "from" and "to" dates in the JSON must match the LinkedIn positions data exactly. Do NOT use dates from the pasted resume text — those may be imprecise. Always use the dates provided in WORK HISTORY.
 
 ${workSection}
 
@@ -3700,12 +5349,15 @@ Return a tailored resume as JSON with this exact structure:
 }
 
 Rules:
+- CRITICAL: Use the EXACT month+year dates from LinkedIn work history — never change them, never approximate with year-only
 - If existing resume was provided, use REAL content — rewrite bullets to emphasise relevance to "${targetRole}", do not invent new jobs
 - If only LinkedIn positions provided, generate plausible achievement bullets based on title and seniority
+- If JD is provided, tailor bullets to directly address stated requirements
 - 2-3 bullets per role maximum
 - Bullets start with strong action verbs, quantified where plausible
 - skills array should be the most relevant 10-12 from the user's background
-- Return ONLY the JSON object, no markdown, no explanation`;
+- Return ONLY the JSON object, no markdown, no explanation
+- Never include URLs, hyperlinks, or web addresses in any field — the only exception is a linkedin.com/in/ profile URL if present in the source resume`;
 
   try {
     const raw = await callAI(prompt, 1200);
@@ -3713,27 +5365,43 @@ Rules:
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON in response');
     const data = JSON.parse(jsonMatch[0]);
-    data._positions = positions; // keep for rendering dates
-    data._name      = profile.name || '';
-    data._headline  = profile.headline || '';
-    data._location  = profile.location || '';
-    data._target    = targetRole;
+    data._positions   = positions; // keep for rendering dates
+    data._name        = profile.name || '';
+    data._headline    = profile.headline || '';
+    data._location    = profile.location || '';
+    data._email       = profile.email || '';
+    data._phone       = profile.phone || '';
+    data._linkedinUrl = profile.linkedinUrl || '';
+    data._target      = displayRole;
+    // Log resume generation on contact
+    if (state.contacts[idx]) {
+      state.contacts[idx]._lastResumeDate = new Date().toISOString();
+      logActivity('resume_generated', { contactIdx: idx, role: displayRole });
+      state.contacts[idx]._lastResumeRole = displayRole;
+      saveContacts();
+    }
     openResumeModal(data, profile.name || 'Resume');
     setDrawerStatus(idx, 'Resume ready ✓', 'success');
   } catch(e) {
     // Fall back to static resume
     const resumeData = buildStaticResume(profile, positions, skills, targetRole, company);
     openResumeModal(resumeData, profile.name);
-    setDrawerStatus(idx, 'Used template (AI error: ' + e.message.slice(0,40) + ')', 'warn');
+    const isCorsR = e.message?.includes('Failed to fetch') || e.message?.includes('CORS') || e.message?.includes('NetworkError');
+    setDrawerStatus(idx, isCorsR
+      ? '⚠️ AI not reachable — start launch.command / launch.bat, then retry. Showing template resume.'
+      : '⚠️ AI error: ' + e.message.slice(0,60) + '. Showing template resume.', 'warn');
   }
 }
 
 function buildStaticResume(profile, positions, skills, targetRole, company) {
   return {
-    _name:     profile.name || '',
-    _headline: profile.headline || '',
-    _location: profile.location || '',
-    _target:   targetRole,
+    _name:        profile.name || '',
+    _headline:    profile.headline || '',
+    _location:    profile.location || '',
+    _email:       profile.email || '',
+    _phone:       profile.phone || '',
+    _linkedinUrl: profile.linkedinUrl || '',
+    _target:      targetRole,
     summary: profile.bg || `${profile.currentLevel || 'Senior professional'} with extensive experience. Exploring ${targetRole} opportunities${company ? ' at ' + company : ''}.`,
     experience: positions.map(p => ({
       title:   p.title,
@@ -3777,8 +5445,8 @@ function openResumeModal(data, name) {
       <div class="resume-doc" id="resume-doc-content" contenteditable="true" spellcheck="false"
            style="border:1px solid var(--border);border-radius:8px;padding:32px 36px;min-height:600px;outline:none">
         <div class="r-name">${h(data._name || '')}</div>
-        <div class="r-headline">${h(data._headline || data._target || '')}</div>
-        <div class="r-contact">${h(data._location || '')}${data._location ? ' · ' : ''}Edit to add email / phone / LinkedIn URL</div>
+        <div class="r-headline">${h(data._headline || '')}</div>
+        <div class="r-contact">${[data._location, data._email, data._phone, data._linkedinUrl].filter(Boolean).map(v => h(v)).join(' · ') || 'Add contact details in Setup → Profile'}</div>
         <hr class="r-divider">
         <div class="r-section-title">Summary</div>
         <div class="r-summary">${h(data.summary || '')}</div>
@@ -3863,7 +5531,9 @@ function init() {
 
   // If no real data yet, inject sample contacts so new users can explore immediately
   if (state.contacts.length === 0) {
-    state.contacts = SAMPLE_CONTACTS.map(c => ({ ...c }));
+    state.contacts  = SAMPLE_CONTACTS.map(c => ({ ...c }));
+    state.TARGET_COS = ['microsoft', 'razorpay', 'stripe', 'freshworks', 'atlassian'];
+    state.COMPANY_INTEL = JSON.parse(JSON.stringify(SAMPLE_COMPANY_INTEL));
   }
 
   const onboarded = localStorage.getItem(LS.onboarded);
