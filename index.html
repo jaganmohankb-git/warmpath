@@ -77,9 +77,16 @@ body {
   cursor: pointer;
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
 }
 .nav-tab:hover { color: var(--text); }
 .nav-tab.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 600; }
+.nav-tab-sub { font-size: 10px; font-weight: 400; color: var(--faint); line-height: 1; letter-spacing: 0; }
+.nav-tab.active .nav-tab-sub { color: var(--purple); opacity: 0.7; }
 .nav-action {
   background: var(--purple-bg);
   color: var(--purple);
@@ -386,6 +393,13 @@ body {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 6px; padding: 4px 10px; font-size: 12px; color: var(--muted);
 }
+/* Company status select — compact, inline in company header */
+.co-status-select {
+  font-size: 11px; padding: 3px 6px; border: 1px solid var(--border2);
+  border-radius: 6px; background: var(--surface); color: var(--muted);
+  cursor: pointer; max-width: 120px;
+}
+.co-status-select.has-status { color: var(--text); border-color: var(--purple); background: var(--purple-bg); }
 .msg-textarea {
   width: 100%; min-height: 140px; border: 1px solid var(--border2);
   border-radius: var(--radius); padding: 10px 12px;
@@ -723,13 +737,20 @@ select option { background: var(--surface); }
   <div class="nav-brand">WarmPath</div>
   <div class="nav-tabs">
     <button class="nav-tab active" data-tab="contacts" onclick="switchTab('contacts')">
-      Network (<span id="nav-a-count">0</span> A)
+      <span>Network (<span id="nav-a-count">0</span> A)</span>
+      <span class="nav-tab-sub">Find &amp; Reach</span>
+    </button>
+    <button class="nav-tab" data-tab="jobs" onclick="switchTab('jobs')">
+      <span>Jobs (<span id="nav-jobs-count">0</span>)</span>
+      <span class="nav-tab-sub">Track &amp; Apply</span>
     </button>
     <button class="nav-tab" data-tab="applications" onclick="switchTab('applications')">
-      Applications (<span id="nav-app-count">0</span>)
+      <span>Applications (<span id="nav-app-count">0</span>)</span>
+      <span class="nav-tab-sub">Interview &amp; Close</span>
     </button>
     <button class="nav-tab" data-tab="setup" onclick="switchTab('setup')">
-      Setup
+      <span>Setup</span>
+      <span class="nav-tab-sub">Profile &amp; Settings</span>
     </button>
   </div>
   <button class="nav-action" onclick="openOnboarding()">Setup / Re-import</button>
@@ -740,6 +761,12 @@ select option { background: var(--surface); }
   <div id="tab-contacts" class="tab-panel active">
     <div class="empty-state">
       <div class="empty-state-icon">🌱</div>
+      <div class="empty-state-title">Loading…</div>
+    </div>
+  </div>
+  <div id="tab-jobs" class="tab-panel">
+    <div class="empty-state">
+      <div class="empty-state-icon">💼</div>
       <div class="empty-state-title">Loading…</div>
     </div>
   </div>
@@ -787,8 +814,155 @@ const LS = {
   resume:'wp_resume', custom_targets:'wp_custom_targets',
   company_intel:'wp_company_intel',
   activity_log: 'wp_activity_log',
-  view_mode: 'wp_view_mode'
+  view_mode: 'wp_view_mode',
+  scoring_config: 'wp_scoring_config',
+  jobs: 'wp_jobs',
+  outreach: 'wp_outreach',
+  templates: 'wp_templates',
+  last_backup: 'wp_last_backup'
 };
+
+// ─── Scoring signal definitions ───────────────
+const SCORING_SIGNALS = [
+  { id:'recommendation', label:'Gave me a recommendation',           defaultWeight:10 },
+  { id:'exColleague',    label:'Worked together (same company)',      defaultWeight:9  },
+  { id:'messageVolume',  label:'High message volume (10+ messages)',  defaultWeight:8  },
+  { id:'messageRecency', label:'Messaged within last 90 days',        defaultWeight:8  },
+  { id:'targetCompany',  label:'At a target company',                defaultWeight:8  },
+  { id:'recruiter',      label:'Recruiter at a target company',       defaultWeight:7  },
+  { id:'pmTitle',        label:'PM / product title',                 defaultWeight:7  },
+  { id:'seniorTitle',    label:'Senior title matching your target',   defaultWeight:5  },
+  { id:'connRecency',    label:'Connected recently (< 90 days)',      defaultWeight:5  },
+  { id:'companyFollow',  label:'Following their company',             defaultWeight:4  },
+  { id:'adjacentRole',   label:'Adjacent role (eng / design / HR)',   defaultWeight:3  },
+  { id:'hasEmail',       label:'Has email address',                  defaultWeight:2  },
+];
+
+function getWeights() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS.scoring_config) || '{}');
+    const out = {};
+    SCORING_SIGNALS.forEach(s => { out[s.id] = (s.id in saved) ? saved[s.id] : s.defaultWeight; });
+    return out;
+  } catch(e) {
+    const out = {};
+    SCORING_SIGNALS.forEach(s => { out[s.id] = s.defaultWeight; });
+    return out;
+  }
+}
+
+function saveWeights(weights) {
+  localStorage.setItem(LS.scoring_config, JSON.stringify(weights));
+}
+
+function applyWeightsAndRescore() {
+  const w = {};
+  SCORING_SIGNALS.forEach(sig => {
+    const el = document.getElementById(`wt-${sig.id}`);
+    w[sig.id] = el ? parseInt(el.value, 10) : sig.defaultWeight;
+  });
+  saveWeights(w);
+  reScoreAll(w);
+  updateNavCounts();
+  const st = document.getElementById('weights-status');
+  if (st) { st.textContent = `✓ Scores recalculated (${state.contacts.length} contacts)`; setTimeout(() => { st.textContent = ''; }, 3000); }
+  if (activeTab === 'contacts') renderContactsList();
+}
+
+function resetWeightsToDefault() {
+  const w = {};
+  SCORING_SIGNALS.forEach(s => { w[s.id] = s.defaultWeight; });
+  saveWeights(w);
+  renderSetupTab();
+}
+
+function saveCustomTemplate() {
+  const name   = document.getElementById('ct-name')?.value?.trim();
+  const stat   = document.getElementById('ct-static')?.value?.trim();
+  if (!name || !stat) { alert('Template name and static template text are required.'); return; }
+  const tmpl = {
+    id:             'custom_' + genId(),
+    name,
+    category:       document.getElementById('ct-category')?.value?.trim() || 'Custom',
+    staticTemplate: stat,
+    systemPrompt:   document.getElementById('ct-prompt')?.value?.trim() || '',
+    subjectLine:    document.getElementById('ct-subject')?.value?.trim() || '',
+    editable:       true
+  };
+  let custom = [];
+  try { custom = JSON.parse(localStorage.getItem(LS.templates) || '[]'); } catch(e){}
+  custom.push(tmpl);
+  localStorage.setItem(LS.templates, JSON.stringify(custom));
+  renderSetupTab();
+}
+
+function deleteCustomTemplate(id) {
+  if (!confirm('Delete this custom template?')) return;
+  let custom = [];
+  try { custom = JSON.parse(localStorage.getItem(LS.templates) || '[]'); } catch(e){}
+  custom = custom.filter(t => t.id !== id);
+  localStorage.setItem(LS.templates, JSON.stringify(custom));
+  renderSetupTab();
+}
+
+function fillTemplatePlaceholders(text, c, profile, job) {
+  const firstName = (c.name || '').split(' ')[0];
+  const sharedHistory = (c.gradeReasons || []).filter(r => r.includes('colleague') || r.includes('messaged')).join(', ') || 'our past connection';
+  return text
+    .replace(/\[Contact Name\]/g,       firstName || c.name || '')
+    .replace(/\[Contact Title\]/g,      c.role || c.position || '')
+    .replace(/\[Contact Company\]/g,    c.company || '')
+    .replace(/\[My Name\]/g,            profile.name || '')
+    .replace(/\[My Title\]/g,           profile.currentLevel || profile.headline || '')
+    .replace(/\[Role Title\]/g,         job?.title || c.savedRole || profile.target || '')
+    .replace(/\[Hiring Company\]/g,     job?.company || c.company || '')
+    .replace(/\[Job URL\]/g,            job?.url || '')
+    .replace(/\[Shared History Summary\]/g, sharedHistory);
+}
+
+// ─── Preset message templates ──────────────────
+const PRESET_TEMPLATES = [
+  {
+    id: 'job_referral', name: 'Job Referral Request', category: 'Job Search', editable: false,
+    subjectLine: 'Saw a role at [Hiring Company] — your thoughts?',
+    staticTemplate: `Hi [Contact Name],\n\nIt's been a while since [Shared History Summary]. I've been following your work at [Contact Company] — looks like you're doing great things.\n\nI came across a [Role Title] role at [Hiring Company] and it's right in my wheelhouse. Given your perspective there, I'd love to hear your take on the team and culture. And if you're comfortable, a referral would mean a lot.\n\nHappy to share more context — here's the role: [Job URL]\n\nEither way, would be great to reconnect.\n\nBest,\n[My Name]`,
+    systemPrompt: `You are a networking coach helping a senior professional reach out to LinkedIn connections for job referrals. Generate a warm, professional message that:\n1. References specific shared history (overlapping employer, past messages) — provided in context\n2. Mentions the specific role naturally without sounding desperate\n3. Asks for a referral or informational conversation, not a direct job ask\n4. Keeps the tone confident and peer-to-peer, not supplicant\n5. Is under 150 words\n6. Does not use "I hope this finds you well" or "I wanted to reach out"\nContext about the contact and the role will be provided.`
+  },
+  {
+    id: 'advisory', name: 'Advisory Introduction', category: 'Advisory', editable: false,
+    subjectLine: 'Quick thought on [Contact Company]\'s direction',
+    staticTemplate: `Hi [Contact Name],\n\nGood to see your work at [Contact Company] — [Shared History Summary].\n\nI've recently started advising companies on [My Title], drawing on my experience. Given what [Contact Company] is building, I thought there might be some overlap worth exploring.\n\nNo pitch — just a conversation if you're open to it.\n\n[My Name]`,
+    systemPrompt: `You are helping an independent advisor reach out to a LinkedIn connection to introduce their advisory practice. Generate a warm message that:\n1. References shared history from the data provided\n2. Briefly mentions advisory domain expertise and relevance to their company\n3. Offers a no-commitment conversation, not a sales pitch\n4. Positions the advisor as a peer, not a vendor\n5. Is under 120 words\n6. Does not use "pick your brain" or "I hope this finds you well"`
+  },
+  {
+    id: 'speaking', name: 'Speaking / Panels', category: 'Networking', editable: false,
+    subjectLine: 'Speaking opportunity — interested?',
+    staticTemplate: `Hi [Contact Name],\n\n[Shared History Summary] — great to stay connected.\n\nI've been speaking more on [My Title] lately and I'm looking for podcasts, panels, or meetup stages. If you know of anything coming up — or if you'd be open to co-presenting — I'd love to explore.\n\n[My Name]`,
+    systemPrompt: `You are helping a senior professional reach out about speaking opportunities — podcasts, panels, meetups, or conferences. Generate a warm message that:\n1. References shared history from the data provided\n2. Mentions a specific topic they can speak on\n3. Asks if the contact knows of upcoming opportunities or would co-present\n4. Is under 100 words\n5. Keeps the tone casual and collaborative, not self-promotional`
+  },
+  {
+    id: 'networking', name: 'Leadership Networking', category: 'Networking', editable: false,
+    subjectLine: 'Great move to [Contact Company]',
+    staticTemplate: `Hi [Contact Name],\n\n[Shared History Summary] — been a while. I saw you're now [Contact Title] at [Contact Company] — that's a great move.\n\nWanted to drop a note and say congrats. No ask — just staying in touch. If anything interesting is happening on your side, would love to hear about it.\n\n[My Name]`,
+    systemPrompt: `You are helping a senior professional strengthen their network by reconnecting. Generate a warm message that:\n1. References specific shared history from the data provided\n2. Shows genuine curiosity about what they're working on\n3. Offers something of value — insight, congratulations, or an introduction\n4. Does NOT ask for anything — pure relationship maintenance\n5. Is under 100 words\n6. Does not use "catch up" or "coffee chat"`
+  },
+  {
+    id: 'general', name: 'General Outreach', category: 'Other', editable: false,
+    subjectLine: '[Contact Name] — quick note',
+    staticTemplate: `Hi [Contact Name],\n\n[Shared History Summary]. Reaching out because [purpose — fill this in manually].\n\nWould love to connect on this if you're open.\n\n[My Name]`,
+    systemPrompt: `You are helping a professional write a LinkedIn outreach message. Generate a warm, concise message that:\n1. References shared history from the data provided\n2. States the purpose clearly in 1-2 sentences\n3. Is under 100 words\n4. Sounds human and natural, not templated\nThe purpose of the outreach will be provided in the context.`
+  }
+];
+
+function getTemplates() {
+  let custom = [];
+  try { custom = JSON.parse(localStorage.getItem(LS.templates) || '[]'); } catch(e){}
+  return [...PRESET_TEMPLATES, ...custom];
+}
+
+function getTemplate(id) {
+  return getTemplates().find(t => t.id === id);
+}
 
 // AI provider defaults
 const AI_DEFAULTS = {
@@ -799,8 +973,7 @@ const AI_DEFAULTS = {
 };
 
 const CONTACT_STATUSES = [
-  'Not contacted','Message sent','Replied','Call done',
-  'Referral given','Intro made','No response'
+  'Not contacted','Messaged','Replied','Met','Referred me','No response'
 ];
 
 const APP_STATUSES = [
@@ -856,7 +1029,7 @@ const SAMPLE_CONTACTS = [
 
   // ── Freshworks (2 contacts · target) ─────────────────────────
   { name:'Ananya Iyer',    company:'Freshworks',  role:'Senior Talent Partner',
-    grade:'A', score:68, warmthTier:'active-contact',  status:'Message sent',
+    grade:'A', score:68, warmthTier:'active-contact',  status:'Messaged',
     gradeReasons:['recruiter at target company','messaged 5 times'],                  msgCount:5,
     connectedOn:'2022-11-08', _sample:true },
   { name:'Ravi Sundaram',  company:'Freshworks',  role:'Group Product Manager',
@@ -933,8 +1106,41 @@ function isSampleMode() {
   return state.contacts.length > 0 && state.contacts.every(c => c._sample);
 }
 
+const SAMPLE_JOBS = [
+  { id:'sj1', title:'Senior Product Manager – Payments', company:'Razorpay',
+    url:'', status:'Pursuing', source:'Referral',
+    notes:'Priya mentioned they\'re actively hiring for a Group PM. Strong referral potential.',
+    dateAdded:'2026-04-28', _sample:true },
+  { id:'sj2', title:'Product Lead, Developer Platform', company:'Stripe',
+    url:'', status:'Applied',
+    notes:'Applied via Karan\'s referral. Waiting for recruiter outreach.',
+    source:'Referral', dateAdded:'2026-04-20', _sample:true },
+  { id:'sj3', title:'Group PM – Collaboration', company:'Microsoft',
+    url:'', status:'Pursuing',
+    notes:'Role posted internally. Vikram to confirm if external hiring is open.',
+    source:'Company site', dateAdded:'2026-04-15', _sample:true },
+];
+
+const SAMPLE_APPLICATIONS = [
+  { company:'Freshworks', role:'Director of Product – CRM Platform',
+    via:'Referral', referredBy:'Ananya Iyer', status:'Screening',
+    dateApplied:'2026-04-22', nextDate:'2026-05-08',
+    interviewer:'Hiring Manager', notes:'Phone screen scheduled. Ananya made a warm intro.',
+    feedback:[], _sample:true },
+  { company:'Atlassian', role:'Senior Product Manager – Jira',
+    via:'Direct apply', referredBy:'', status:'Applied',
+    dateApplied:'2026-04-10', nextDate:'', interviewer:'',
+    notes:'Applied through careers site. Rohan connected me to the team earlier.',
+    feedback:[], _sample:true },
+];
+
 function clearSampleData() {
-  if (isSampleMode()) state.contacts = [];
+  if (isSampleMode()) {
+    state.contacts     = [];
+    state.JOBS         = state.JOBS.filter(j => !j._sample);
+    state.OUTREACH     = state.OUTREACH.filter(o => !o._sample);
+    state.applications = state.applications.filter(a => !a._sample);
+  }
 }
 
 function dismissSampleBanner() {
@@ -948,7 +1154,7 @@ function dismissSampleBanner() {
 let state = {
   contacts: [],
   applications: [],
-  profile: { name:'', headline:'', bg:'', target:'', currentLevel:'', topSkills:[], location:'' },
+  profile: { name:'', headline:'', bg:'', target:'', currentLevel:'', topSkills:[], location:'', domain:'', primaryGoal:'' },
   MSG_LOOKUP: {},
   RECOMMENDERS: [],
   POSITIONS_DATA: [],
@@ -956,8 +1162,10 @@ let state = {
   ENDORSERS: [],
   SKILLS: [],
   TARGET_COS: [],
-  COMPANY_INTEL: {},  // shared cache: normalised-company-name → intel object
-  ACTIVITY_LOG: []    // timestamped events: {type, date, contactIdx?, meta?}
+  COMPANY_INTEL: {},
+  ACTIVITY_LOG: [],
+  JOBS: [],
+  OUTREACH: []
 };
 
 let activeTab = 'contacts';
@@ -988,6 +1196,7 @@ function switchTab(tab) {
     p.classList.toggle('active', p.id === 'tab-' + tab);
   });
   if (tab === 'contacts') renderContactsTab();
+  if (tab === 'jobs') renderJobsTab();
   if (tab === 'applications') renderApplicationsTab();
   if (tab === 'setup') renderSetupTab();
 }
@@ -1004,6 +1213,346 @@ function updateNavCounts() {
     }
   }
   document.getElementById('nav-app-count').textContent = appCount;
+  const jobsEl = document.getElementById('nav-jobs-count');
+  if (jobsEl) jobsEl.textContent = state.JOBS.filter(j => j.status === 'Pursuing' || j.status === 'Applied' || j.status === 'Interviewing').length;
+}
+
+// ─────────────────────────────────────────────
+// SECTION 9B · Jobs tab
+// ─────────────────────────────────────────────
+
+let jobsFilter = ''; // '' = all, or a JOB_STATUS value
+let expandedJobs = new Set();
+let showAddJobForm = false;
+
+function renderJobsTab() {
+  const el = document.getElementById('tab-jobs');
+  if (!el) return;
+  const filtered = jobsFilter
+    ? state.JOBS.filter(j => j.status === jobsFilter)
+    : state.JOBS;
+
+  const filterBtns = ['', ...JOB_STATUSES].map(s => `
+    <button class="grade-pill${jobsFilter === s ? ' active' : ''}"
+      onclick="jobsFilter='${s}';renderJobsTab()" style="font-size:12px">
+      ${s || 'All'} ${s ? '(' + state.JOBS.filter(j=>j.status===s).length + ')' : '(' + state.JOBS.length + ')'}
+    </button>`).join('');
+
+  const addJobForm = showAddJobForm ? `
+    <div class="setup-section" style="margin-bottom:16px;padding:16px;border:2px solid var(--purple);border-radius:var(--radius-lg)">
+      <div class="setup-section-title" style="margin-bottom:12px">Add a job to track</div>
+      <div class="form-grid">
+        <div class="form-field"><label class="form-label">Job title *</label>
+          <input class="form-input" id="jf-title" placeholder="e.g. Staff Product Manager, Developer Platform"></div>
+        <div class="form-field"><label class="form-label">Company *</label>
+          <input class="form-input" id="jf-company" placeholder="e.g. Google"></div>
+        <div class="form-field"><label class="form-label">Job URL</label>
+          <input class="form-input" id="jf-url" placeholder="https://careers.google.com/…" oninput="prefillJobFromUrl(this.value)">
+          <div id="jf-url-hint" style="font-size:11px;margin-top:3px;min-height:14px"></div></div>
+        <div class="form-field"><label class="form-label">Source</label>
+          <select class="form-select" id="jf-source">
+            <option>LinkedIn</option><option>Company site</option><option>Referral</option><option>Other</option>
+          </select></div>
+        <div class="form-field full"><label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="jf-notes" style="min-height:60px" placeholder="Any context on this role…"></textarea></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-primary" onclick="submitAddJob()">Add job</button>
+        <button class="btn btn-ghost" onclick="showAddJobForm=false;renderJobsTab()">Cancel</button>
+      </div>
+    </div>` : '';
+
+  const jobCards = filtered.length === 0
+    ? `<div class="empty-state">
+        <div class="empty-state-icon">💼</div>
+        <div class="empty-state-title">No jobs tracked yet</div>
+        <div class="empty-state-sub">Add a job above to start linking contacts to specific roles.</div>
+       </div>`
+    : filtered.map(job => renderJobCard(job)).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <h2 style="font-size:18px;font-weight:700">Jobs <span style="font-size:13px;font-weight:400;color:var(--muted)">${state.JOBS.length} tracked</span></h2>
+      <button class="btn btn-primary" onclick="showAddJobForm=true;renderJobsTab()">+ Add job</button>
+    </div>
+    ${addJobForm}
+    <div class="grade-pill-row" style="margin-bottom:16px">${filterBtns}</div>
+    ${jobCards}`;
+
+  updateNavCounts();
+}
+
+function renderJobCard(job) {
+  const outreachForJob = state.OUTREACH.filter(o => o.jobId === job.id);
+  const isExpanded = expandedJobs.has(job.id);
+  const safeId = job.id;
+
+  const statusColor = { 'Pursuing':'var(--teal)', 'Applied':'var(--blue)',
+    'Interviewing':'var(--purple)', 'Offer':'var(--green)', 'Closed':'var(--faint)' };
+  const col = statusColor[job.status] || 'var(--muted)';
+
+  const outreachRows = outreachForJob.map(rec => {
+    const contact = state.contacts[rec.contactIdx];
+    const lastChange = rec.statusHistory[rec.statusHistory.length - 1];
+    const daysAgo = lastChange ? Math.floor((Date.now() - new Date(lastChange.date)) / 86400000) : null;
+    const statusLabel = OUTREACH_STATUSES.find(s => s.id === rec.status)?.label || rec.status;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius);margin-bottom:6px;flex-wrap:wrap">
+      <div style="flex:1;min-width:120px">
+        <div style="font-weight:600;font-size:13px">${h(rec.contactName)}</div>
+        <div style="font-size:11px;color:var(--muted)">${h(rec.contactCompany||'')}</div>
+      </div>
+      <select style="font-size:12px;padding:3px 6px;border:1px solid var(--border2);border-radius:6px;background:var(--surface)"
+        onchange="updateOutreachStatus('${rec.id}',this.value);renderJobsTab()">
+        ${OUTREACH_STATUSES.map(s=>`<option value="${s.id}" ${rec.status===s.id?'selected':''}>${s.label}</option>`).join('')}
+      </select>
+      <span style="font-size:11px;color:var(--faint);white-space:nowrap">${daysAgo !== null ? daysAgo+'d ago' : ''}</span>
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();deleteOutreachRecord('${rec.id}')">✕</button>
+    </div>`;
+  }).join('');
+
+  const coLower = (job.company || '').toLowerCase();
+  const atCompany = state.contacts
+    .map((c,i) => ({c,i}))
+    .filter(({c}) => (c.company||'').toLowerCase() === coLower)
+    .sort((a,b) => (b.c.score||0) - (a.c.score||0));
+  const others = state.contacts
+    .map((c,i) => ({c,i}))
+    .filter(({c}) => (c.company||'').toLowerCase() !== coLower)
+    .sort((a,b) => (b.c.score||0) - (a.c.score||0))
+    .slice(0, 40);
+  const mkOpt = ({c,i}, showCo) =>
+    `<option value="${i}">${h(c.name)} · ${c.score||0} pts${c.grade?' ('+c.grade+')':''}${showCo&&c.company?' @ '+h(c.company):''}</option>`;
+
+  const linkContactHtml = `
+    <div style="margin-top:10px">
+      <input id="link-search-${safeId}" type="text" placeholder="Search contacts…"
+        style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);margin-bottom:6px;box-sizing:border-box"
+        oninput="filterLinkContactSelect('${safeId}', this.value)">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="link-contact-${safeId}" class="form-select" style="font-size:12px;flex:1;min-width:180px;padding:5px 8px">
+          <option value="">— Link a contact —</option>
+          ${atCompany.length ? `<optgroup label="At ${h(job.company)}">${atCompany.map(x=>mkOpt(x,false)).join('')}</optgroup>` : ''}
+          ${others.length ? `<optgroup label="Other contacts (top 40 by score)">${others.map(x=>mkOpt(x,true)).join('')}</optgroup>` : ''}
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="linkContactToJob('${safeId}')">Link</button>
+      </div>
+    </div>`;
+
+  return `<div class="setup-section" style="padding:0;overflow:hidden;margin-bottom:10px">
+    <div style="padding:14px 16px;cursor:pointer;display:flex;align-items:flex-start;gap:12px"
+         onclick="toggleJobExpand('${safeId}')">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:15px;margin-bottom:3px">${h(job.title)}</div>
+        <div style="font-size:13px;color:var(--muted)">${h(job.company)}
+          ${job.url ? `<a href="${h(job.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--blue);margin-left:6px;font-size:12px">↗</a>` : ''}
+        </div>
+        <div style="font-size:11px;color:var(--faint);margin-top:3px">Added ${h(job.dateAdded)} · ${outreachForJob.length} contact${outreachForJob.length!==1?'s':''} linked</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0" onclick="event.stopPropagation()">
+        <select style="font-size:12px;padding:3px 8px;border:1px solid var(--border2);border-radius:6px;color:${col};font-weight:600;background:var(--surface)"
+          onchange="updateJobField('${safeId}','status',this.value);renderJobsTab()">
+          ${JOB_STATUSES.map(s=>`<option value="${s}" ${job.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+        ${['Applied','Interviewing'].includes(job.status) ? `<button class="btn btn-teal btn-sm" style="font-size:11px" onclick="moveJobToApplications('${safeId}')">→ Move to Applications</button>` : ''}
+        <button class="btn btn-ghost btn-sm" style="color:var(--red);font-size:11px" onclick="deleteJob('${safeId}')">Delete</button>
+      </div>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">${isExpanded?'▼':'▶'}</span>
+    </div>
+    ${isExpanded ? `<div style="padding:0 16px 16px;border-top:1px solid var(--border)">
+      ${outreachRows || '<div style="font-size:13px;color:var(--faint);padding:10px 0">No contacts linked yet.</div>'}
+      ${linkContactHtml}
+    </div>` : ''}
+  </div>`;
+}
+
+function toggleJobExpand(jobId) {
+  if (expandedJobs.has(jobId)) expandedJobs.delete(jobId);
+  else expandedJobs.add(jobId);
+  renderJobsTab();
+}
+
+function submitAddJob() {
+  const title   = document.getElementById('jf-title')?.value?.trim();
+  const company = document.getElementById('jf-company')?.value?.trim();
+  if (!title || !company) { alert('Job title and company are required.'); return; }
+  const url    = document.getElementById('jf-url')?.value?.trim() || '';
+  const source = document.getElementById('jf-source')?.value || 'Manual';
+  const notes  = document.getElementById('jf-notes')?.value?.trim() || '';
+  const job    = addJob(title, company, url, source, notes);
+  expandedJobs.add(job.id);
+  showAddJobForm = false;
+  renderJobsTab();
+}
+
+function parseJobUrl(url) {
+  if (!url) return null;
+  try {
+    const u    = new URL(url);
+    const host = u.hostname.toLowerCase();
+    const path = u.pathname;
+    const slug = s => s.replace(/[-_]+/g,' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
+
+    if (host.includes('greenhouse.io')) {
+      const m = path.match(/\/([^/]+)\/jobs\/(\d+)/);
+      if (m) return { company: slug(m[1]), refId: m[2], source:'Company site' };
+    }
+    if (host.includes('lever.co')) {
+      const m = path.match(/\/([^/]+)\/([a-f0-9-]{36})/i);
+      if (m) return { company: slug(m[1]), refId: m[2].slice(0,8), source:'Company site' };
+    }
+    if (host.includes('ashbyhq.com')) {
+      const m = path.match(/\/([^/]+)\/.+/);
+      if (m) return { company: slug(m[1]), source:'Company site' };
+    }
+    if (host.includes('myworkdayjobs.com')) {
+      const coM = host.match(/^([^.]+)\./);
+      const company = coM ? slug(coM[1]) : '';
+      const parts = path.split('/').filter(Boolean);
+      const refId = parts[parts.length - 1] || '';
+      const titleSlug = parts[parts.length - 2] || '';
+      const title = titleSlug ? slug(titleSlug) : '';
+      return { company, title, refId, source:'Company site' };
+    }
+    if (host.includes('linkedin.com')) {
+      const m = path.match(/\/jobs\/view\/[^/]*?-(\d{10,})/);
+      if (m) return { refId: m[1], source:'LinkedIn' };
+      const m2 = path.match(/\/jobs\/(\d+)/);
+      if (m2) return { refId: m2[1], source:'LinkedIn' };
+    }
+    if (host.includes('indeed.com')) {
+      const jk = u.searchParams.get('jk');
+      if (jk) return { refId: jk, source:'Indeed' };
+    }
+    if (host.includes('naukri.com')) {
+      const m = path.match(/-(\d{15,})(?:\.htm)?$/);
+      if (m) return { refId: m[1], source:'Naukri' };
+    }
+    // Generic: use subdomain as company hint if not a common word
+    const sub = host.split('.')[0];
+    if (!['jobs','careers','www','apply','hiring','boards','recruit'].includes(sub)) {
+      return { company: slug(sub), source:'Company site' };
+    }
+  } catch(e) {}
+  return null;
+}
+
+function prefillJobFromUrl(url) {
+  if (!url || !url.startsWith('http')) return;
+  const parsed = parseJobUrl(url);
+  if (!parsed) return;
+  const set = (id, val) => { if (val) { const el = document.getElementById(id); if (el && !el.value) el.value = val; }};
+  set('jf-company', parsed.company);
+  set('jf-title',   parsed.title);
+  if (parsed.source) {
+    const src = document.getElementById('jf-source');
+    if (src) src.value = parsed.source;
+  }
+  if (parsed.refId) {
+    const notes = document.getElementById('jf-notes');
+    if (notes && !notes.value) notes.value = `Ref: ${parsed.refId}`;
+  }
+  // Show a small hint
+  const hint = document.getElementById('jf-url-hint');
+  if (hint) {
+    const parts = [parsed.company, parsed.title, parsed.refId ? `#${parsed.refId}` : ''].filter(Boolean);
+    hint.textContent = parts.length ? `✓ Detected: ${parts.join(' · ')}` : '';
+    hint.style.color = 'var(--teal)';
+  }
+}
+
+function quickAddJob(idx, title, company) {
+  clearSampleData();
+  const job = addJob(title, company, '', 'Referral', '');
+  saveJobs();
+  // auto-link this contact as an outreach record
+  addOutreachRecord(Number(idx), job.id);
+  // remove the prompt banner
+  document.getElementById(`job-prompt-${idx}`)?.remove();
+  setDrawerStatus(Number(idx), `✓ Added to Jobs tracker — switch to Jobs tab to track`, 'success');
+  updateNavCounts();
+}
+
+function moveJobToApplications(jobId) {
+  const job = state.JOBS.find(j => j.id === jobId);
+  if (!job) return;
+  if (!confirm(`Move "${job.title}" @ ${job.company} to Applications?\nThis will mark the job as Closed in the Jobs tab.`)) return;
+  clearSampleData();
+  const appStatus = job.status === 'Interviewing' ? 'Screening' : 'Applied';
+  // Find any referred contact to pre-fill referredBy
+  const referralRec = state.OUTREACH.find(o => o.jobId === jobId && o.status === 'referred');
+  const referredBy = referralRec ? (state.contacts[referralRec.contactIdx]?.name || '') : '';
+  state.applications.unshift({
+    company: job.company,
+    role: job.title,
+    via: referredBy ? 'Referral' : 'Direct apply',
+    referredBy,
+    status: appStatus,
+    dateApplied: new Date().toISOString().slice(0,10),
+    nextDate: '',
+    interviewer: '',
+    notes: job.notes || '',
+    feedback: []
+  });
+  saveApplications();
+  updateJobField(jobId, 'status', 'Closed');
+  updateNavCounts();
+  renderJobsTab();
+  showBanner(`"${job.title}" moved to Applications as ${appStatus} ✓`, 'success');
+}
+
+function filterLinkContactSelect(jobId, query) {
+  const sel = document.getElementById(`link-contact-${jobId}`);
+  const job = state.JOBS.find(j => j.id === jobId);
+  if (!sel || !job) return;
+  const q = query.trim().toLowerCase();
+  const coLower = (job.company || '').toLowerCase();
+  let candidates = state.contacts.map((c, i) => ({ c, i }));
+  if (q) candidates = candidates.filter(({ c }) =>
+    c.name.toLowerCase().includes(q) || (c.company || '').toLowerCase().includes(q)
+  );
+  const atCo = candidates.filter(({ c }) => (c.company || '').toLowerCase() === coLower)
+    .sort((a, b) => (b.c.score || 0) - (a.c.score || 0));
+  const rest = candidates.filter(({ c }) => (c.company || '').toLowerCase() !== coLower)
+    .sort((a, b) => (b.c.score || 0) - (a.c.score || 0))
+    .slice(0, q ? 60 : 40);
+  const mkOpt = ({ c, i }, showCo) => {
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = `${c.name} · ${c.score || 0} pts${c.grade ? ' (' + c.grade + ')' : ''}${showCo && c.company ? ' @ ' + c.company : ''}`;
+    return o;
+  };
+  sel.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '— Link a contact —';
+  sel.appendChild(placeholder);
+  if (atCo.length) {
+    const grp = document.createElement('optgroup');
+    grp.label = `At ${job.company}`;
+    atCo.forEach(x => grp.appendChild(mkOpt(x, false)));
+    sel.appendChild(grp);
+  }
+  if (rest.length) {
+    const grp = document.createElement('optgroup');
+    grp.label = q ? 'Other matches' : 'Other contacts';
+    rest.forEach(x => grp.appendChild(mkOpt(x, true)));
+    sel.appendChild(grp);
+  }
+}
+
+function linkContactToJob(jobId) {
+  const sel = document.getElementById(`link-contact-${jobId}`);
+  const contactIdx = parseInt(sel?.value, 10);
+  if (isNaN(contactIdx)) return;
+  const result = addOutreachRecord(contactIdx, jobId);
+  if (!result) { alert('This contact is already linked to this job.'); return; }
+  renderJobsTab();
+}
+
+function deleteOutreachRecord(outreachId) {
+  state.OUTREACH = state.OUTREACH.filter(o => o.id !== outreachId);
+  saveOutreach();
+  renderJobsTab();
 }
 
 // ─────────────────────────────────────────────
@@ -1204,7 +1753,7 @@ function saveAppModal(idx) {
       c.name.toLowerCase().trim() === referredBy.toLowerCase().trim()
     );
     if (refContact) {
-      refContact.status = 'Referral given';
+      refContact.status = 'Referred me';
       saveContacts();
     } else {
       // Referrer not in contacts — offer to add them
@@ -1213,7 +1762,7 @@ function saveAppModal(idx) {
           name: referredBy, company, position: '', role: `Referrer at ${company}`,
           relationship: 'Referral contact', grade: 'A', score: 60,
           gradeReasons: ['referred you'], warmthTier: 'known', msgCount: 0,
-          status: 'Referral given', notes: `Referred for ${role} at ${company}`,
+          status: 'Referred me', notes: `Referred for ${role} at ${company}`,
           url: '', connectedOn: '', source: 'manual',
           lastContacted: new Date().toISOString().slice(0,10), savedRole: role
         };
@@ -1499,8 +2048,34 @@ function renderSetupTab() {
           <input class="form-input" id="sp-name" value="${h(p.name||'')}" placeholder="Full name"></div>
         <div class="form-field"><label class="form-label">LinkedIn headline</label>
           <input class="form-input" id="sp-headline" value="${h(p.headline||'')}" placeholder="e.g. Staff PM · Fintech · Platform"></div>
-        <div class="form-field"><label class="form-label">Current level / title</label>
-          <input class="form-input" id="sp-level" value="${h(p.currentLevel||'')}" placeholder="e.g. Staff PM, Head of Product"></div>
+        <div class="form-field"><label class="form-label">Seniority level</label>
+          <select class="form-select" id="sp-level">
+            <option value="" ${!p.currentLevel?'selected':''}>— Select —</option>
+            <option value="IC" ${p.currentLevel==='IC'?'selected':''}>IC (Individual Contributor)</option>
+            <option value="Senior IC" ${p.currentLevel==='Senior IC'?'selected':''}>Senior IC</option>
+            <option value="Staff/Principal" ${p.currentLevel==='Staff/Principal'?'selected':''}>Staff / Principal</option>
+            <option value="Manager" ${p.currentLevel==='Manager'?'selected':''}>Manager</option>
+            <option value="Director" ${p.currentLevel==='Director'?'selected':''}>Director</option>
+            <option value="VP+" ${p.currentLevel==='VP+'?'selected':''}>VP+</option>
+          </select></div>
+        <div class="form-field"><label class="form-label">Domain / Industry</label>
+          <select class="form-select" id="sp-domain">
+            <option value="" ${!p.domain?'selected':''}>— Select —</option>
+            <option value="Technology/SaaS" ${p.domain==='Technology/SaaS'?'selected':''}>Technology / SaaS</option>
+            <option value="Healthcare" ${p.domain==='Healthcare'?'selected':''}>Healthcare</option>
+            <option value="Supply Chain" ${p.domain==='Supply Chain'?'selected':''}>Supply Chain</option>
+            <option value="Financial Services" ${p.domain==='Financial Services'?'selected':''}>Financial Services</option>
+            <option value="E-commerce" ${p.domain==='E-commerce'?'selected':''}>E-commerce</option>
+            <option value="Other" ${p.domain==='Other'?'selected':''}>Other</option>
+          </select></div>
+        <div class="form-field"><label class="form-label">Primary goal</label>
+          <select class="form-select" id="sp-goal">
+            <option value="" ${!p.primaryGoal?'selected':''}>— Select —</option>
+            <option value="Job Search" ${p.primaryGoal==='Job Search'?'selected':''}>Job Search</option>
+            <option value="Advisory/Consulting" ${p.primaryGoal==='Advisory/Consulting'?'selected':''}>Advisory / Consulting</option>
+            <option value="Recruiting" ${p.primaryGoal==='Recruiting'?'selected':''}>Recruiting</option>
+            <option value="Networking" ${p.primaryGoal==='Networking'?'selected':''}>Networking</option>
+          </select></div>
         <div class="form-field"><label class="form-label">Current company <span style="color:var(--faint)">(excluded from target scoring)</span></label>
           <input class="form-input" id="sp-currentco" value="${h(p.currentCompany||'')}" placeholder="e.g. Acme Corp"></div>
         <div class="form-field"><label class="form-label">Location</label>
@@ -1626,6 +2201,74 @@ function renderSetupTab() {
       </div>
     </div>
 
+    <!-- Scoring Weights -->
+    <div class="setup-section">
+      <div class="setup-section-title">Scoring weights
+        <span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px">0 = disabled · 10 = maximum weight</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">
+        Adjust how much each signal contributes to warmth scores. Changes take effect when you click Recalculate.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+        ${(() => {
+          const w = getWeights();
+          return SCORING_SIGNALS.map(sig => `
+            <div style="display:flex;align-items:center;gap:12px">
+              <label style="flex:1;font-size:13px;color:var(--text)">${h(sig.label)}</label>
+              <input type="range" min="0" max="10" step="1" value="${w[sig.id]}"
+                id="wt-${sig.id}" oninput="document.getElementById('wv-${sig.id}').textContent=this.value"
+                style="width:120px;accent-color:var(--purple)">
+              <span id="wv-${sig.id}" style="font-size:13px;font-weight:600;color:var(--purple);width:18px;text-align:right">${w[sig.id]}</span>
+            </div>`).join('');
+        })()}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="applyWeightsAndRescore()">↻ Recalculate scores</button>
+        <button class="btn btn-secondary" onclick="resetWeightsToDefault()">Reset to defaults</button>
+        <span id="weights-status" style="font-size:13px;color:var(--teal);align-self:center"></span>
+      </div>
+    </div>
+
+    <!-- Message Templates -->
+    <div class="setup-section">
+      <div class="setup-section-title">Message templates</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">
+        Preset templates for different outreach goals. Add custom templates for your specific use cases.
+      </div>
+      ${(() => {
+        const custom = (() => { try { return JSON.parse(localStorage.getItem(LS.templates)||'[]'); } catch(e){ return []; } })();
+        const allTemplates = [...PRESET_TEMPLATES, ...custom];
+        return allTemplates.map(t => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius);margin-bottom:8px">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px">${h(t.name)}</div>
+              <div style="font-size:11px;color:var(--muted)">${h(t.category || 'General')} · ${t.systemPrompt ? 'AI + Static' : 'Static only'}</div>
+            </div>
+            ${!t.editable ? `<span style="font-size:11px;color:var(--faint);padding:2px 8px;border:1px solid var(--border);border-radius:10px">Preset</span>`
+              : `<button class="btn btn-ghost btn-sm" onclick="deleteCustomTemplate('${t.id}')">Delete</button>`}
+          </div>`).join('');
+      })()}
+      <div id="custom-template-form" style="display:none;margin-top:12px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-lg)">
+        <div class="form-grid">
+          <div class="form-field"><label class="form-label">Template name</label>
+            <input class="form-input" id="ct-name" placeholder="e.g. Investor Intro"></div>
+          <div class="form-field"><label class="form-label">Category</label>
+            <input class="form-input" id="ct-category" placeholder="e.g. Fundraising"></div>
+          <div class="form-field full"><label class="form-label">Static template <span style="color:var(--faint)">(use [Contact Name], [My Name], [Contact Company], [Role Title], [Shared History Summary])</span></label>
+            <textarea class="form-textarea" id="ct-static" style="min-height:120px;font-family:monospace;font-size:12px" placeholder="Hi [Contact Name],\n\n[Shared History Summary]…"></textarea></div>
+          <div class="form-field full"><label class="form-label">System prompt <span style="color:var(--faint)">(optional — AI generation instructions)</span></label>
+            <textarea class="form-textarea" id="ct-prompt" style="min-height:80px;font-size:12px" placeholder="You are helping a professional reach out…"></textarea></div>
+          <div class="form-field"><label class="form-label">Default subject line</label>
+            <input class="form-input" id="ct-subject" placeholder="e.g. Quick thought on [Contact Company]"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-primary" onclick="saveCustomTemplate()">Save template</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('custom-template-form').style.display='none'">Cancel</button>
+        </div>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:10px" onclick="document.getElementById('custom-template-form').style.display='block'">+ Add custom template</button>
+    </div>
+
     <!-- Launcher instructions -->
     <div class="setup-section">
       <details>
@@ -1711,12 +2354,32 @@ function renderSetupTab() {
 
     ${scoringPreview}
 
+    <!-- Backup & Restore -->
+    <div class="setup-section">
+      <div class="setup-section-title">Backup &amp; Restore</div>
+      ${(() => {
+        const lastBackup = localStorage.getItem(LS.last_backup);
+        const daysAgo = lastBackup ? Math.floor((Date.now() - new Date(lastBackup)) / 86400000) : null;
+        if (daysAgo === null) return `<div class="banner banner-warn" style="margin-bottom:12px">⚠ No backup taken yet — back up before making big changes.</div>`;
+        if (daysAgo > 7)     return `<div class="banner banner-warn" style="margin-bottom:12px">⏰ Last backup: <strong>${daysAgo} days ago</strong> — consider downloading a fresh copy.</div>`;
+        return `<div style="font-size:12px;color:var(--teal);margin-bottom:12px">✓ Last backup: <strong>${daysAgo === 0 ? 'today' : daysAgo + ' day' + (daysAgo===1?'':'s') + ' ago'}</strong></div>`;
+      })()}
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">
+        Exports all your data — contacts, applications, jobs, messages, and settings — as a single JSON file you can save anywhere (iCloud Drive, Google Drive, local folder). Restore from the same file at any time.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="downloadBackup()">⬇ Download backup</button>
+        <button class="btn btn-secondary" onclick="restoreFromBackup()">⬆ Restore from backup</button>
+      </div>
+    </div>
+
     <!-- Data management -->
     <div class="setup-section">
       <div class="setup-section-title">Data management</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:10px">
         Contacts: <strong>${state.contacts.length}</strong> &nbsp;|&nbsp;
         Applications: <strong>${state.applications.length}</strong> &nbsp;|&nbsp;
+        Jobs tracked: <strong>${state.JOBS.length}</strong> &nbsp;|&nbsp;
         Message history: <strong>${Object.keys(state.MSG_LOOKUP).length} slugs</strong> &nbsp;|&nbsp;
         Recommenders: <strong>${state.RECOMMENDERS.length}</strong>
       </div>
@@ -1744,6 +2407,8 @@ function saveProfileForm() {
   state.profile.phone         = document.getElementById('sp-phone')?.value?.trim()     || '';
   state.profile.linkedinUrl   = document.getElementById('sp-linkedin')?.value?.trim()  || '';
   state.profile.companyType   = document.getElementById('sp-cotype')?.value           || '';
+  state.profile.domain        = document.getElementById('sp-domain')?.value            || '';
+  state.profile.primaryGoal   = document.getElementById('sp-goal')?.value              || '';
   state.profile.bg            = document.getElementById('sp-bg')?.value?.trim()        || '';
   state.profile.target        = document.getElementById('sp-target')?.value?.trim()    || '';
   state.profile.whyLooking    = document.getElementById('sp-why')?.value?.trim()       || '';
@@ -2443,6 +3108,8 @@ function renderContactsList() {
       <span style="flex:1">${h(importBanner.msg)}</span>
       ${importBanner.memOffer ? `<button class="btn btn-secondary btn-sm" style="white-space:nowrap"
         onclick="freeMessageMemory()">🗜 Free up memory</button>` : ''}
+      ${importBanner.backupOffer ? `<button class="btn btn-primary btn-sm" style="white-space:nowrap"
+        onclick="downloadBackup();importBanner=null;renderContactsList()">Back up now</button>` : ''}
       <button class="banner-close" onclick="importBanner=null; renderContactsList()">✕</button>
     </div>`;
   }
@@ -2582,6 +3249,10 @@ function renderContactsByCompany(filtered) {
     const intel     = state.COMPANY_INTEL[coKeyName];
     const jobUrl    = company !== '(No company)' ? getJobLinks(company, state.profile.target)[0].url : null;
     const companyJobMatch = intel?._jobMatch || null;
+    // Outreach: any contact at this company has been messaged
+    const hasOutreach = contacts.some(c => (c._interactions||[]).length > 0 ||
+      (c.status && c.status !== 'Not contacted'));
+    const coStatus = intel?._coStatus || '';
 
     // Grade pill summary
     const gradeSummary = [
@@ -2596,6 +3267,14 @@ function renderContactsByCompany(filtered) {
       intelChip = `<span class="company-group-intel">· Glassdoor ${intel.glassdoorRating}★</span>`;
     }
 
+    // Outreach badge
+    const outreachBadge = hasOutreach
+      ? `<span style="font-size:11px;color:var(--teal);font-weight:600">· ✉️ contacted</span>`
+      : '';
+
+    // Company status label (manual)
+    const coStatusLabels = { watching:'🔍 Watching', 'no-opening':'🚫 No opening', 'on-hold':'⏸ On hold' };
+
     // Target badge
     const targetBadge = isTarget
       ? `<span style="font-size:10px;background:var(--teal-bg);color:var(--teal);border:1px solid #b0e4d4;border-radius:10px;padding:1px 7px;font-weight:600">🎯 target</span>`
@@ -2603,20 +3282,10 @@ function renderContactsByCompany(filtered) {
 
     const safeCompany = company.replace(/'/g, "\\'");
 
-    // Job match section HTML (shown when company is expanded)
-    const jobMatchSection = company !== '(No company)' ? `
+    // Job match card — only shown if already fetched/cached; no AI-fetch button
+    const jobMatchSection = companyJobMatch ? `
       <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2)" onclick="event.stopPropagation()">
-        ${companyJobMatch
-          ? renderCompanyJobMatchCard(company, companyJobMatch, coKeyName)
-          : `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-               <button class="btn btn-sm" style="background:var(--teal);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;display:inline-flex;gap:5px;align-items:center"
-                       id="co-job-btn-${coKeyName}"
-                       onclick="findBestJobMatchForCompany('${safeCompany}')">
-                 <span id="co-job-spinner-${coKeyName}" class="spinner hidden"></span> 🔍 Find job match
-               </button>
-               <span id="co-job-status-${coKeyName}" style="font-size:11px;color:var(--muted)"></span>
-             </div>`
-        }
+        ${renderCompanyJobMatchCard(company, companyJobMatch, coKeyName)}
       </div>` : '';
 
     html += `
@@ -2631,10 +3300,19 @@ function renderContactsByCompany(filtered) {
             <span style="color:var(--faint)">·</span>
             <span>${contacts.length} contact${contacts.length > 1 ? 's' : ''}</span>
             ${intelChip}
+            ${outreachBadge}
+            ${coStatus ? `<span style="font-size:11px;color:var(--purple);font-weight:600">${coStatusLabels[coStatus] || coStatus}</span>` : ''}
           </div>
         </div>
         <div class="company-group-right">
           ${jobUrl ? `<a class="btn btn-secondary btn-sm" style="font-size:11px" href="${h(jobUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Jobs ↗</a>` : ''}
+          ${company !== '(No company)' ? `<select class="co-status-select${coStatus ? ' has-status' : ''}" onclick="event.stopPropagation()"
+            onchange="event.stopPropagation(); setCompanyStatus('${safeCompany}', this.value)">
+            <option value="">+ Status</option>
+            <option value="watching" ${coStatus==='watching'?'selected':''}>🔍 Watching</option>
+            <option value="no-opening" ${coStatus==='no-opening'?'selected':''}>🚫 No opening</option>
+            <option value="on-hold" ${coStatus==='on-hold'?'selected':''}>⏸ On hold</option>
+          </select>` : ''}
           ${company !== '(No company)' && !intel ? `<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation(); loadCompanyIntelForGroup('${safeCompany}', this)">Load intel</button>` : ''}
           <span class="company-group-chevron ${isOpen ? 'open' : ''}">▶</span>
         </div>
@@ -2818,6 +3496,17 @@ function renderContactCard(c, idx) {
     : '';
   const isSelected = selectedForExport.has(idx);
 
+  // Decay indicator — only on warm contacts with message history
+  let decayHtml = '';
+  if (c.grade === 'A' && c._lastMsgDate) {
+    const daysSinceMsg = Math.floor((Date.now() - new Date(c._lastMsgDate)) / 86400000);
+    if (daysSinceMsg > 180) {
+      decayHtml = `<span title="Connection may have gone cold — last contact ${daysSinceMsg} days ago. Consider re-engaging before asking for a referral." style="cursor:help;color:var(--red);font-size:14px">🔴</span>`;
+    } else if (daysSinceMsg > 90) {
+      decayHtml = `<span title="Warm connection cooling — last contact ${daysSinceMsg} days ago." style="cursor:help;color:var(--amber);font-size:14px">🟡</span>`;
+    }
+  }
+
   return `<div class="contact-card" id="card-${idx}" data-idx="${idx}">
     <div class="contact-card-header" onclick="handleCardClick(event,${idx})">
       <label class="export-checkbox-wrap" onclick="event.stopPropagation()" title="Select for export">
@@ -2830,6 +3519,8 @@ function renderContactCard(c, idx) {
           <span class="contact-name">${h(c.name)}</span>
           ${gradeBadge(c.grade)}
           ${statusBadge(c.status)}
+          ${c._boosted ? `<span class="badge" style="background:var(--amber-bg);color:var(--amber);border:1px solid #f5c96a">🔥 boosted</span>` : ''}
+          ${decayHtml}
           ${referralBadge}
         </div>
         <div class="contact-role">${h(c.role || [c.position, c.company].filter(Boolean).join(', ') || '—')}</div>
@@ -2943,27 +3634,21 @@ function renderDrawerContent(idx) {
   // Pre-fill savedRole from company-level job match if no role set yet
   if (companyJobMatch && !c.savedRole) c.savedRole = companyJobMatch.title;
 
-  let intelHtml = '';
-  if (intelCached) {
-    const age = intelCached.fetchedAt ? Math.round((Date.now() - new Date(intelCached.fetchedAt)) / 86400000) : null;
-    const ageLabel = age !== null ? ` · ${age}d ago` : '';
-    intelHtml = `
-      ${intelCached.glassdoorRating ? `<span class="intel-chip">Glassdoor ${intelCached.glassdoorRating} ★</span>` : ''}
-      <button class="btn btn-ghost btn-sm" onclick="loadCompanyIntel(${idx})">↻ Refresh${ageLabel}</button>`;
-  } else {
-    intelHtml = `<button class="btn btn-secondary btn-sm" onclick="loadCompanyIntel(${idx})" id="intel-btn-${idx}">→ Load intel</button>
-      <span id="intel-result-${idx}" style="font-size:12px;color:var(--muted)"></span>`;
-  }
+  // Glassdoor shown on company header only — not duplicated in contact drawer
 
   drawer.innerHTML = `
     <div style="padding:4px 0 12px">
 
       <!-- ① Grade — quick assign, compact -->
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);flex-wrap:wrap">
         <span style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.5px">Grade</span>
         <button class="btn btn-sm${c.grade==='A'?' btn-teal':' btn-ghost'}" onclick="updateContactGrade(${idx},'A');renderDrawerContent(${idx})">A — Warm</button>
         <button class="btn btn-sm${c.grade==='B'?' btn-amber':' btn-ghost'}" onclick="updateContactGrade(${idx},'B');renderDrawerContent(${idx})">B — Lukewarm</button>
         <button class="btn btn-sm${c.grade==='C'?' btn-secondary':' btn-ghost'}" onclick="updateContactGrade(${idx},'C');renderDrawerContent(${idx})">C — Cold</button>
+        <button class="btn btn-sm${c._boosted?' btn-amber':' btn-ghost'}" onclick="toggleBoost(${idx})"
+          title="${c._boosted ? 'Remove boost — reverts score' : 'Boost: +50 pts for off-LinkedIn warmth (ex-colleague, email history, phone contact)'}">
+          ${c._boosted ? '🔥 Boosted' : '⚡ Boost'}
+        </button>
       </div>
 
       <!-- ② Message — PRIMARY: visible immediately, no scrolling needed -->
@@ -3000,6 +3685,17 @@ function renderDrawerContent(idx) {
           </span>
         </summary>
         <div style="margin-top:10px">
+          <div class="drawer-section-label">Message template</div>
+          <select id="msg-template-${idx}" style="width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);margin-bottom:8px" onchange="onTemplateChange(${idx})">
+            <option value="">— AI-personalised (default) —</option>
+            ${getTemplates().map(t => `<option value="${h(t.id)}">${h(t.name)}${t.editable===false?'':' ✎'}</option>`).join('')}
+          </select>
+          <div id="template-subject-${idx}" style="font-size:11px;color:var(--teal);margin-bottom:8px;display:none"></div>
+          <div class="drawer-section-label" style="margin-top:4px">Link to tracked job</div>
+          <select id="msg-job-${idx}" style="width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);margin-bottom:10px">
+            <option value="">— none —</option>
+            ${state.JOBS.filter(j=>['Pursuing','Applied','Interviewing'].includes(j.status)).map(j=>`<option value="${h(j.id)}">${h(j.title)} @ ${h(j.company)}</option>`).join('')}
+          </select>
           <div class="drawer-section-label">Job you're targeting</div>
           <div style="display:flex;gap:4px;margin-bottom:7px">
             <button class="btn btn-sm ${c._jdMode==='paste'?'btn-ghost':'btn-secondary'}" onclick="setJdMode(${idx},'url')">🔗 URL / title</button>
@@ -3034,18 +3730,13 @@ function renderDrawerContent(idx) {
             </select>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btn btn-ghost btn-sm" onclick="generateResume(${idx})" title="Generate a tailored resume for this role">📄 Tailor resume</button>
+            <button class="btn btn-ghost btn-sm" onclick="copyResumePrompt(${idx})" title="Copy a tailored prompt to paste into Claude.ai for resume generation">📋 Copy resume prompt</button>
             <button class="btn btn-ghost btn-sm" onclick="openResumeChecker(${idx})" title="Compare dates across LinkedIn, resume &amp; profile">🔍 Check facts</button>
-            ${c._lastResumeDate ? `<span style="font-size:11px;color:var(--muted);align-self:center" title="Last resume: ${h(c._lastResumeRole||'')}">📄 ${Math.max(0,Math.floor((Date.now()-new Date(c._lastResumeDate))/86400000))}d ago</span>` : ''}
           </div>
         </div>
       </details>
 
-      <!-- ④ Company intel — compact chip row -->
-      ${c.company ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.4px">${h(c.company)}</span>
-        <div class="intel-row" id="intel-row-${idx}" style="flex:1">${intelHtml}</div>
-      </div>` : ''}
+      <!-- ④ Company intel removed from drawer — see company header for Glassdoor rating -->
 
       <!-- ⑤ Referral ask — conditional, clearly secondary -->
       ${c.status === 'Replied' ? `
@@ -3071,6 +3762,35 @@ function renderDrawerContent(idx) {
           ${renderInteractionTimeline(c, idx)}
         </div>
       </details>
+
+      <!-- ⑦ Outreach history — jobs this contact has been approached about -->
+      ${(()=>{
+        const contactOutreach = state.OUTREACH.filter(o => o.contactIdx === idx);
+        if (!contactOutreach.length) return '';
+        return `<details style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px" open>
+          <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:12px;font-weight:600;color:var(--text)">Job outreach history</span>
+            <span style="font-size:11px;color:var(--teal)">${contactOutreach.length} job${contactOutreach.length===1?'':'s'} &nbsp;▾</span>
+          </summary>
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+            ${contactOutreach.map(o => {
+              const job = state.JOBS.find(j => j.id === o.jobId);
+              if (!job) return '';
+              const latestStatus = o.statusHistory?.length ? o.statusHistory[o.statusHistory.length-1].status : o.status;
+              return `<div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:12px">
+                <div style="font-weight:600;color:var(--text);margin-bottom:4px">${h(job.title)} @ ${h(job.company)}</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <select style="font-size:11px;padding:2px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text)"
+                    onchange="updateOutreachStatus('${h(o.id)}',this.value);renderDrawerContent(${idx})">
+                    ${OUTREACH_STATUSES.map(s=>`<option value="${h(s)}"${s===latestStatus?' selected':''}>${h(s)}</option>`).join('')}
+                  </select>
+                  ${o.statusHistory?.length > 1 ? `<span style="color:var(--muted);font-size:11px">${o.statusHistory.length} updates</span>` : ''}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </details>`;
+      })()}
 
     </div>`;
 
@@ -3210,14 +3930,24 @@ async function generateMessage(idx) {
     ? Math.floor((Date.now() - new Date(c._lastSentDate)) / 86400000)
     : null;
 
-  // No AI configured — use static template, but tell the user clearly
+  const selectedTemplateId = document.getElementById(`msg-template-${idx}`)?.value || '';
+  const selectedJobId      = document.getElementById(`msg-job-${idx}`)?.value || '';
+  const selectedTmpl       = selectedTemplateId ? getTemplate(selectedTemplateId) : null;
+  const linkedJob          = selectedJobId ? state.JOBS.find(j => j.id === selectedJobId) || null : null;
+
+  // No AI configured — use selected template or built-in static template
   if (!cfg.apiKey && cfg.provider !== 'ollama') {
     const scored = smartScore(c, state);
-    let tmpl = getStaticTemplate(scored.warmthTier, c, state.profile, interactionState);
-    if (isUrl(roleHint)) tmpl += `\n\nRole I had in mind: ${roleHint}`;
-    if (ta) ta.value = tmpl;
-    state.contacts[idx]._draftMsg = tmpl;
-    setDrawerStatus(idx, '📝 Using a built-in template (no AI key set — add one in Setup → Settings for personalised messages)', 'info');
+    let tmplText;
+    if (selectedTmpl?.staticTemplate) {
+      tmplText = fillTemplatePlaceholders(selectedTmpl.staticTemplate, c, state.profile, linkedJob);
+    } else {
+      tmplText = getStaticTemplate(scored.warmthTier, c, state.profile, interactionState);
+      if (isUrl(roleHint)) tmplText += `\n\nRole I had in mind: ${roleHint}`;
+    }
+    if (ta) ta.value = tmplText;
+    state.contacts[idx]._draftMsg = tmplText;
+    setDrawerStatus(idx, selectedTmpl ? `📝 Using template: ${selectedTmpl.name}` : '📝 Using a built-in template (no AI key set — add one in Setup → Settings for personalised messages)', 'info');
     return;
   }
 
@@ -3285,7 +4015,11 @@ This is a warm follow-through — NOT a cold intro. They engaged, so skip all pr
   const bgSnippet  = (profile.bg || 'Senior product professional').slice(0, 500);
   const jdSnippet  = jdContext && jdContext !== roleHint ? jdContext.slice(0, 1000) : '';
 
-  const prompt = `You are writing a LinkedIn direct message on behalf of ${profile.name || 'the user'}.
+  const templateSystemNote = selectedTmpl?.systemPrompt
+    ? `\nTEMPLATE STYLE: ${selectedTmpl.systemPrompt}`
+    : '';
+
+  const prompt = `You are writing a LinkedIn direct message on behalf of ${profile.name || 'the user'}.${templateSystemNote}
 
 USER'S BACKGROUND:
 ${bgSnippet}
@@ -3345,6 +4079,23 @@ ${interactionRules}
     setDrawerStatus(idx, errMsg, 'warn');
   } finally {
     if (spinner) spinner.classList.add('hidden');
+  }
+}
+
+function onTemplateChange(idx) {
+  const sel = document.getElementById(`msg-template-${idx}`);
+  const subjectEl = document.getElementById(`template-subject-${idx}`);
+  if (!sel || !subjectEl) return;
+  const tmpl = getTemplate(sel.value);
+  if (tmpl && tmpl.subjectLine) {
+    const c = state.contacts[idx];
+    const jobId = document.getElementById(`msg-job-${idx}`)?.value;
+    const job = state.JOBS.find(j => j.id === jobId) || null;
+    const filled = fillTemplatePlaceholders(tmpl.subjectLine, c, state.profile, job);
+    subjectEl.textContent = `Subject: ${filled}`;
+    subjectEl.style.display = 'block';
+  } else {
+    subjectEl.style.display = 'none';
   }
 }
 
@@ -3740,8 +4491,8 @@ function renderCompanyJobMatchCard(company, match, coKeyName) {
       ${match.summary ? `<div style="color:var(--muted);margin-bottom:5px;font-size:11px">${h(match.summary)}</div>` : ''}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">
         <a class="btn btn-teal btn-sm" href="${h(match.url)}" target="_blank" rel="noopener">View job ↗</a>
-        <button class="btn btn-primary btn-sm" onclick="tailorResumeForCompany('${safeCompany}')">📄 Tailor resume</button>
-        <button class="btn btn-ghost btn-sm" onclick="clearCompanyJobMatch('${safeCompany}')" title="Search again">↻ Find again</button>
+        <button class="btn btn-primary btn-sm" onclick="copyResumePromptForCompany('${safeCompany}')" title="Copy a tailored prompt to paste into Claude.ai">📋 Copy resume prompt</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearCompanyJobMatch('${safeCompany}')" title="Clear this job match">↻ Clear</button>
       </div>
       <div style="font-size:10px;color:var(--faint)">${searchedLabel}</div>
     </div>`;
@@ -4123,8 +4874,9 @@ function logAsSent(idx) {
   c._interactions.unshift(entry); // newest first
   logActivity('message_sent', { contactIdx: idx, role });
 
-  c.status        = 'Message sent';
+  c.status        = 'Messaged';
   c.lastContacted = new Date().toISOString().slice(0,10);
+  syncOutreachForContact(idx, 'messaged');
   if (role) c.savedRole = role;
   if (msg) {
     c._lastSentMsg  = msg;
@@ -4142,6 +4894,28 @@ function logAsSent(idx) {
   }
   // Show inline response prompt immediately after logging
   showResponsePrompt(idx, entry.id);
+
+  // Offer to add a Jobs entry if role is set and not already linked
+  if (role && c.company) {
+    const linkedJobId = document.getElementById(`msg-job-${idx}`)?.value;
+    const alreadyExists = state.JOBS.some(j =>
+      j.title.toLowerCase() === role.toLowerCase() && j.company.toLowerCase() === c.company.toLowerCase()
+    );
+    if (!linkedJobId && !alreadyExists) {
+      const banner = document.getElementById(`job-prompt-${idx}`);
+      if (banner) return;
+      const drawerBody = document.getElementById('side-drawer-body');
+      if (drawerBody) {
+        const prompt = document.createElement('div');
+        prompt.id = `job-prompt-${idx}`;
+        prompt.style.cssText = 'margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--border)';
+        prompt.innerHTML = `<span style="flex:1">💼 Add <strong>${h(role)}</strong> @ <strong>${h(c.company)}</strong> to your Jobs tracker?</span>
+          <button class="btn btn-primary btn-sm" onclick="quickAddJob('${idx}','${h(role).replace(/'/g,"\\'")}','${h(c.company).replace(/'/g,"\\'")}')">Add to Jobs</button>
+          <button class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">Skip</button>`;
+        drawerBody.appendChild(prompt);
+      }
+    }
+  }
 }
 
 function showResponsePrompt(idx, entryId) {
@@ -4185,6 +4959,9 @@ function saveInteractionResponse(idx, entryId, response) {
   if (response === 'replied' || response === 'positive') {
     c.status = 'Replied';
     logActivity('response_received', { contactIdx: idx, response });
+    syncOutreachForContact(idx, 'replied');
+  } else if (response === 'no_response') {
+    syncOutreachForContact(idx, 'no_response');
   }
 
   saveContacts();
@@ -4425,6 +5202,110 @@ function updateContactGrade(idx, grade) {
   renderContactsList();
 }
 
+function toggleBoost(idx) {
+  const c = state.contacts[idx];
+  if (!c) return;
+  c._boosted = !c._boosted;
+  const delta = c._boosted ? 50 : -50;
+  c.score = Math.max(0, (c.score || 0) + delta);
+  c.grade  = c.score >= 55 ? 'A' : c.score >= 25 ? 'B' : 'C';
+  c.source = 'manual';
+  saveContacts();
+  updateNavCounts();
+  renderContactsList();
+  if (sideDrawerIdx === idx) renderDrawerContent(idx);
+}
+
+function setCompanyStatus(company, status) {
+  const key = coKey(company);
+  if (!state.COMPANY_INTEL[key]) state.COMPANY_INTEL[key] = {};
+  state.COMPANY_INTEL[key]._coStatus = status;
+  saveCompanyIntel();
+  renderContactsList();
+}
+
+function copyResumePrompt(idx) {
+  const c         = state.contacts[idx];
+  const profile   = state.profile;
+  const jdContext = getJdContext(idx);
+  const rawRole   = (document.getElementById(`role-input-${idx}`)?.value || c?.savedRole || '').trim();
+  const roleHint  = (c?._jdFetchedTitle && c._jdMode !== 'paste') ? c._jdFetchedTitle : rawRole;
+  const roleIsUrl = /^https?:\/\//i.test(roleHint);
+  const displayRole = roleIsUrl ? (profile.target || 'a senior professional role') : (roleHint || profile.target || 'a senior professional role');
+  const company   = c?.company || '';
+
+  const positions = [...(state.POSITIONS_DATA || [])]
+    .sort((a, b) => (b.from || '').localeCompare(a.from || ''))
+    .slice(0, 8);
+  const posText = positions.map(p => {
+    const from = p.from ? p.from.slice(0, 7) : '';
+    const to   = p.to && p.to < new Date().toISOString() ? p.to.slice(0, 7) : 'Present';
+    return `${p.title} at ${p.co_display} (${from} – ${to})`;
+  }).join('\n');
+  const skills = (state.SKILLS || []).slice(0, 20).join(', ');
+  const rawPasted = localStorage.getItem(LS.resume) || '';
+  const pastedResume = rawPasted
+    .replace(/https?:\/\/(?!(?:www\.)?linkedin\.com\/in\/)\S+/g, '')
+    .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  const workSection = pastedResume
+    ? `EXISTING RESUME (use as base — rewrite and tailor, do not fabricate new jobs):\n${pastedResume.slice(0, 3000)}`
+    : `WORK HISTORY from LinkedIn:\n${posText || 'No positions data — list experience as best you can.'}`;
+
+  const prompt = `Tailor my resume for the role below.
+
+MY PROFILE:
+Name: ${profile.name || ''}
+Headline: ${profile.headline || ''}
+Background: ${profile.bg || 'Senior professional'}
+Level: ${profile.currentLevel || ''}
+Location: ${profile.location || ''}${skills ? `\nSkills: ${skills}` : ''}
+
+TARGET ROLE: ${displayRole}${company ? ` at ${company}` : ''}
+${jdContext && jdContext !== roleHint && !roleIsUrl ? `\nJOB DESCRIPTION:\n${jdContext.slice(0, 2000)}` : ''}
+CRITICAL: Use the LinkedIn work history dates exactly. Do NOT invent dates, roles, or companies.
+
+${workSection}
+
+Please write a complete, tailored resume with:
+1. A concise 2–3 sentence professional summary targeted to the role
+2. Experience section — strong action-verb bullets, quantify results, relevant to ${displayRole}
+3. Skills section
+
+Keep all employment history truthful.`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    setDrawerStatus(idx, '✓ Copied! Paste into claude.ai →', 'success');
+  }).catch(() => {
+    // Clipboard blocked (file:// protocol) — show prompt in a temp textarea
+    const ta = document.getElementById(`msg-ta-${idx}`);
+    if (ta) { ta.value = prompt; ta.select(); }
+    setDrawerStatus(idx, 'Clipboard blocked — prompt is in the message box, copy manually', 'warn');
+  });
+}
+
+function copyResumePromptForCompany(company) {
+  const coKeyName = coKey(company);
+  const match = state.COMPANY_INTEL[coKeyName]?._jobMatch;
+  if (!match) return;
+  const contact = state.contacts
+    .filter(c => coKey(c.company || '') === coKeyName)
+    .sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+  if (!contact) return;
+  const idx = state.contacts.indexOf(contact);
+  // Pre-fill JD context from job match
+  contact.savedRole = match.title;
+  contact._jdMode   = 'paste';
+  contact._jdText   = [match.title + ' at ' + company, match.summary, match.snippet].filter(Boolean).join('\n\n');
+  saveContacts();
+  copyResumePrompt(idx);
+  // Brief status in the company card
+  const statusEl = document.getElementById(`co-job-status-${coKeyName}`);
+  if (statusEl) {
+    statusEl.textContent = '✓ Prompt copied! Paste into claude.ai';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 4000);
+  }
+}
+
 function updateContactStatus(idx, status) {
   if (!state.contacts[idx]) return;
   const c = state.contacts[idx];
@@ -4508,8 +5389,17 @@ function clearContactNote(idx) {
 // ─────────────────────────────────────────────
 // SECTION 3 · Scoring engine  (exact from spec)
 // ─────────────────────────────────────────────
-function smartScore(contact, archiveData) {
+function smartScore(contact, archiveData, weights) {
   const { MSG_LOOKUP, RECOMMENDERS, POSITIONS_DATA, COMPANY_FOLLOWS, TARGET_COS } = archiveData;
+  const w = weights || getWeights(); // configurable weights
+
+  // Helper: scale base score by weight (0–10 scale; weight 0 disables signal)
+  const ws = (base, signalId) => {
+    const sig = SCORING_SIGNALS.find(s => s.id === signalId);
+    if (!sig) return base;
+    const wt = (signalId in w) ? w[signalId] : sig.defaultWeight;
+    return wt === 0 ? 0 : Math.round(base * wt / sig.defaultWeight);
+  };
 
   const co      = (contact.company || '').toLowerCase();
   const pos     = (contact.position || contact.role || '').toLowerCase();
@@ -4520,32 +5410,32 @@ function smartScore(contact, archiveData) {
   let score = 0;
   const reasons = [];
 
-  // Signal 1: Message history
+  // Signal 1: Message history (messageVolume weight)
   const msgData  = urlSlug ? MSG_LOOKUP[urlSlug] : null;
   const msgCount = msgData ? msgData.c : 0;
-  if      (msgCount >= 20) { score += 55; reasons.push(`${msgCount} messages exchanged`); }
-  else if (msgCount >= 10) { score += 40; reasons.push(`${msgCount} messages`); }
-  else if (msgCount >= 5)  { score += 28; reasons.push(`${msgCount} messages`); }
-  else if (msgCount >= 2)  { score += 15; reasons.push('messaged before'); }
+  if      (msgCount >= 20) { score += ws(55,'messageVolume'); reasons.push(`${msgCount} messages exchanged`); }
+  else if (msgCount >= 10) { score += ws(40,'messageVolume'); reasons.push(`${msgCount} messages`); }
+  else if (msgCount >= 5)  { score += ws(28,'messageVolume'); reasons.push(`${msgCount} messages`); }
+  else if (msgCount >= 2)  { score += ws(15,'messageVolume'); reasons.push('messaged before'); }
 
   // Signal 2: Wrote a recommendation
   const isRec = RECOMMENDERS.some(r => {
     const parts = r.toLowerCase().split(' ');
     return parts[0] && name.includes(parts[0]) && (parts[1] ? name.includes(parts[1]) : true);
   });
-  if (isRec) { score += 50; reasons.push('wrote you a recommendation'); }
+  if (isRec) { score += ws(50,'recommendation'); reasons.push('wrote you a recommendation'); }
 
   // Signal 3: At a target company (exclude user's current company)
   const currentCo = (archiveData.profile?.currentCompany || '').toLowerCase().trim();
   const isCurrentCo = currentCo && co.includes(currentCo);
-  if (!isCurrentCo && TARGET_COS.some(t => co.includes(t))) { score += 40; reasons.push('at target company'); }
+  if (!isCurrentCo && TARGET_COS.some(t => co.includes(t))) { score += ws(40,'targetCompany'); reasons.push('at target company'); }
 
   // Signal 4: PM or product title
   const pmTitles = ['product manager','head of product','vp product','director of product',
     'chief product','group pm','principal pm','staff pm','cpo',' pm ','pm,'];
-  if (pmTitles.some(t => pos.includes(t))) { score += 35; reasons.push('product role'); }
+  if (pmTitles.some(t => pos.includes(t))) { score += ws(35,'pmTitle'); reasons.push('product role'); }
 
-  // Signal 5: Exact tenure overlap
+  // Signal 5: Exact tenure overlap (exColleague weight)
   const careerPeriods = POSITIONS_DATA.map(p => ({
     co: p.co.toLowerCase(),
     display: p.co_display,
@@ -4556,13 +5446,13 @@ function smartScore(contact, archiveData) {
   if (connDate && careerPeriods.length > 0) {
     for (const p of careerPeriods) {
       if (connDate >= p.from && connDate <= p.to && co.includes(p.co)) {
-        score += 35; reasons.push(`colleague at ${p.display}`); break;
+        score += ws(35,'exColleague'); reasons.push(`colleague at ${p.display}`); break;
       }
     }
     if (!reasons.some(r => r.includes('colleague'))) {
       for (const p of careerPeriods) {
         if (connDate >= p.from && connDate <= p.to) {
-          score += 15; reasons.push(`connected during ${p.display} era`); break;
+          score += ws(15,'exColleague'); reasons.push(`connected during ${p.display} era`); break;
         }
       }
     }
@@ -4573,31 +5463,31 @@ function smartScore(contact, archiveData) {
     co.includes(k) || (k.length > 4 && co.includes(k.split(' ')[0])));
   if (fk) {
     const daysSince = (Date.now() - new Date(COMPANY_FOLLOWS[fk])) / 86400000;
-    if (daysSince < 60)  { score += 20; reasons.push('following their company'); }
-    else if (daysSince < 180) { score += 10; }
+    if (daysSince < 60)  { score += ws(20,'companyFollow'); reasons.push('following their company'); }
+    else if (daysSince < 180) { score += ws(10,'companyFollow'); }
   }
 
   // Signal 7: Connection recency
   if (connDate) {
     const daysAgo = (Date.now() - connDate) / 86400000;
-    if      (daysAgo < 90)  { score += 20; reasons.push('connected recently'); }
-    else if (daysAgo < 365) { score += 12; reasons.push('connected this year'); }
-    else if (daysAgo < 730) { score +=  5; }
+    if      (daysAgo < 90)  { score += ws(20,'connRecency'); reasons.push('connected recently'); }
+    else if (daysAgo < 365) { score += ws(12,'connRecency'); reasons.push('connected this year'); }
+    else if (daysAgo < 730) { score += ws(5,'connRecency'); }
   }
 
   // Signal 8: Adjacent roles
   const adjTitles = ['engineer','developer','designer','founder','cto','ceo',
     'recruiter','talent','engineering manager','tech lead','architect'];
   if (adjTitles.some(t => pos.includes(t)) && score < 50) {
-    score += 15; reasons.push('eng / adjacent role');
+    score += ws(15,'adjacentRole'); reasons.push('eng / adjacent role');
   }
 
   // Signal 9: Has email address
-  if ((contact.notes || '').includes('Email:')) { score += 5; reasons.push('has email'); }
+  if ((contact.notes || '').includes('Email:')) { score += ws(5,'hasEmail'); reasons.push('has email'); }
 
-  // Signal 10: Recruiter / talent at a target company (high-value for referrals)
+  // Signal 10: Recruiter / talent at a target company
   const isRecruiter = ['recruiter','talent acquisition','talent partner','head of talent','hr business'].some(t => pos.includes(t));
-  if (isRecruiter && !isCurrentCo && TARGET_COS.some(t => co.includes(t))) { score += 30; reasons.push('recruiter at target company'); }
+  if (isRecruiter && !isCurrentCo && TARGET_COS.some(t => co.includes(t))) { score += ws(30,'recruiter'); reasons.push('recruiter at target company'); }
 
   // Signal 11: Their title matches or is senior to user's target role
   const userTarget = (archiveData.profile?.target || '').toLowerCase();
@@ -4606,15 +5496,17 @@ function smartScore(contact, archiveData) {
     const targetWords = userTarget.split(/[,;\/]/)[0].split(' ').filter(w => w.length > 2);
     const titleMatchesTarget = targetWords.some(w => pos.includes(w));
     const isSenior = seniorityWords.some(w => pos.includes(w));
-    if (titleMatchesTarget && isSenior) { score += 25; reasons.push('senior in your target role'); }
-    else if (titleMatchesTarget)        { score += 15; reasons.push('in your target role'); }
+    if (titleMatchesTarget && isSenior) { score += ws(25,'seniorTitle'); reasons.push('senior in your target role'); }
+    else if (titleMatchesTarget)        { score += ws(15,'seniorTitle'); reasons.push('in your target role'); }
   }
 
-  // Signal 12: Message recency bonus (recent contact > old contact)
+  // Signal 12: Message recency bonus
+  let lastMsgDate = null;
   if (msgData && msgData.l) {
+    lastMsgDate = msgData.l;
     const daysSinceMsg = (Date.now() - new Date(msgData.l)) / 86400000;
-    if (daysSinceMsg < 90)  { score += 10; reasons.push('messaged recently'); }
-    else if (daysSinceMsg < 365) { score += 5; }
+    if (daysSinceMsg < 90)  { score += ws(10,'messageRecency'); reasons.push('messaged recently'); }
+    else if (daysSinceMsg < 365) { score += ws(5,'messageRecency'); }
   }
 
   // Derive grade and warmth tier
@@ -4632,7 +5524,7 @@ function smartScore(contact, archiveData) {
 
   const grade = score >= 55 ? 'A' : score >= 25 ? 'B' : 'C';
 
-  return { grade, score, reasons, warmthTier, msgCount };
+  return { grade, score, reasons, warmthTier, msgCount, lastMsgDate };
 }
 
 // ─────────────────────────────────────────────
@@ -4654,6 +5546,42 @@ function loadState() {
   } catch(e){ state.TARGET_COS = []; }
   try { state.COMPANY_INTEL = JSON.parse(localStorage.getItem(LS.company_intel) || '{}'); } catch(e){ state.COMPANY_INTEL = {}; }
   try { state.ACTIVITY_LOG  = JSON.parse(localStorage.getItem(LS.activity_log)  || '[]'); } catch(e){ state.ACTIVITY_LOG = []; }
+  try { state.JOBS     = JSON.parse(localStorage.getItem(LS.jobs)     || '[]'); } catch(e){ state.JOBS = []; }
+  try { state.OUTREACH = JSON.parse(localStorage.getItem(LS.outreach) || '[]'); } catch(e){ state.OUTREACH = []; }
+  migrateStatuses();
+}
+
+function migrateStatuses() {
+  const jobMap = { 'Actively Pursuing':'Pursuing', 'On Hold':'Pursuing', 'Offer':'Offer' };
+  let jobsDirty = false;
+  state.JOBS.forEach(j => {
+    if (jobMap[j.status]) { j.status = jobMap[j.status]; jobsDirty = true; }
+  });
+  if (jobsDirty) saveJobs();
+
+  const outreachMap = {
+    'not_started':'planned', 'message_drafted':'planned',
+    'message_sent':'messaged', 'response_received':'replied',
+    'referral_requested':'referral_asked', 'resume_sent':'referral_asked',
+    'post_referral_followup':'referred', 'interview_scheduled':'referred',
+    'not_referred':'not_referring'
+  };
+  let outreachDirty = false;
+  state.OUTREACH.forEach(o => {
+    if (outreachMap[o.status]) { o.status = outreachMap[o.status]; outreachDirty = true; }
+    if (o.statusHistory) o.statusHistory.forEach(h => {
+      if (outreachMap[h.status]) { h.status = outreachMap[h.status]; outreachDirty = true; }
+    });
+  });
+  if (outreachDirty) saveOutreach();
+
+  const contactMap = { 'Message sent':'Messaged', 'Call done':'Met',
+    'Referral given':'Referred me', 'Intro made':'Replied' };
+  let contactsDirty = false;
+  state.contacts.forEach(c => {
+    if (contactMap[c.status]) { c.status = contactMap[c.status]; contactsDirty = true; }
+  });
+  if (contactsDirty) saveContacts();
 }
 
 function saveCustomTargets(arr) {
@@ -4683,6 +5611,139 @@ function coGroupKey(name) {
 
 function saveCompanyIntel() {
   try { localStorage.setItem(LS.company_intel, JSON.stringify(state.COMPANY_INTEL)); } catch(e){}
+}
+
+// ─── Backup & Restore ─────────────────────────
+function downloadBackup() {
+  const backup = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('wp_')) backup[key] = localStorage.getItem(key);
+  }
+  backup._backupDate = new Date().toISOString();
+  backup._version    = '2.2';
+  const json     = JSON.stringify(backup, null, 2);
+  const blob     = new Blob([json], { type: 'application/json' });
+  const url      = URL.createObjectURL(blob);
+  const now      = new Date();
+  const pad      = n => String(n).padStart(2, '0');
+  const filename = `warmpath-backup-${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.json`;
+  const a        = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  localStorage.setItem(LS.last_backup, new Date().toISOString());
+  showBanner(`Backup saved — ${filename}`, 'success');
+  renderSetupTab();
+}
+
+function restoreFromBackup() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text  = await file.text();
+      const data  = JSON.parse(text);
+      if (!data._backupDate) { showBanner('Invalid backup file — missing backup date marker.', 'error'); return; }
+      const dateStr = new Date(data._backupDate).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+      const ok = confirm(`This will replace ALL current data with the backup from ${dateStr}.\n\nContinue?`);
+      if (!ok) return;
+      // Restore all wp_ keys
+      Object.entries(data).forEach(([key, val]) => {
+        if (key.startsWith('wp_')) localStorage.setItem(key, val);
+      });
+      localStorage.setItem(LS.last_backup, new Date().toISOString());
+      showBanner('Backup restored — reloading…', 'success');
+      setTimeout(() => location.reload(), 1200);
+    } catch(err) {
+      showBanner('Invalid backup file — could not parse JSON.', 'error');
+    }
+  };
+  input.click();
+}
+
+// ─── Jobs & Outreach persistence ──────────────
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function saveJobs()    { try { localStorage.setItem(LS.jobs,    JSON.stringify(state.JOBS));    } catch(e){} }
+function saveOutreach(){ try { localStorage.setItem(LS.outreach,JSON.stringify(state.OUTREACH));} catch(e){} }
+
+const JOB_STATUSES = ['Pursuing','Applied','Interviewing','Offer','Closed'];
+const OUTREACH_STATUSES = [
+  { id:'planned',        label:'Planned' },
+  { id:'messaged',       label:'Messaged' },
+  { id:'replied',        label:'Replied' },
+  { id:'had_a_call',     label:'Had a call' },
+  { id:'referral_asked', label:'Referral asked' },
+  { id:'referred',       label:'Referred ✓' },
+  { id:'not_referring',  label:'Not referring' },
+  { id:'no_response',    label:'No response' },
+];
+
+function addJob(title, company, url, source, notes) {
+  const job = { id:genId(), title, company, url:url||'', source:source||'Manual',
+    dateAdded:new Date().toISOString().slice(0,10), status:'Pursuing', notes:notes||'' };
+  state.JOBS.unshift(job);
+  saveJobs();
+  return job;
+}
+
+function deleteJob(jobId) {
+  if (!confirm('Delete this job and all linked outreach records?')) return;
+  state.JOBS    = state.JOBS.filter(j => j.id !== jobId);
+  state.OUTREACH= state.OUTREACH.filter(o => o.jobId !== jobId);
+  saveJobs(); saveOutreach();
+  renderJobsTab();
+}
+
+function updateJobField(jobId, field, value) {
+  const job = state.JOBS.find(j => j.id === jobId);
+  if (job) { job[field] = value; saveJobs(); }
+}
+
+function addOutreachRecord(contactIdx, jobId) {
+  const c = state.contacts[contactIdx];
+  if (!c || !jobId) return null;
+  // Avoid duplicate
+  if (state.OUTREACH.find(o => o.contactIdx === contactIdx && o.jobId === jobId)) return null;
+  const rec = { id:genId(), contactIdx, contactName:c.name, contactCompany:c.company||'',
+    jobId, status:'planned',
+    statusHistory:[{ status:'planned', date:new Date().toISOString() }],
+    messageDraft:'', notes:'' };
+  state.OUTREACH.push(rec);
+  saveOutreach();
+  return rec;
+}
+
+function updateOutreachStatus(outreachId, status) {
+  const rec = state.OUTREACH.find(o => o.id === outreachId);
+  if (!rec) return;
+  rec.status = status;
+  rec.statusHistory.push({ status, date:new Date().toISOString() });
+  saveOutreach();
+  // When referred, nudge the job to Applied
+  if (status === 'referred') {
+    const job = state.JOBS.find(j => j.id === rec.jobId);
+    if (job && job.status === 'Pursuing') {
+      updateJobField(job.id, 'status', 'Applied');
+      showBanner(`${rec.contactName} referred you — "${job.title}" moved to Applied in Jobs tab`, 'success');
+    }
+  }
+}
+
+// Sync outreach status for a contact across all their linked job records
+function syncOutreachForContact(contactIdx, newStatus) {
+  const records = state.OUTREACH.filter(o => o.contactIdx === contactIdx);
+  if (!records.length) return;
+  const ORDER = ['planned','messaged','replied','had_a_call','referral_asked','referred','not_referring','no_response'];
+  records.forEach(o => {
+    const cur = ORDER.indexOf(o.status);
+    const next = ORDER.indexOf(newStatus);
+    // Only advance forward, never regress (except no_response which can always be set)
+    if (next > cur || newStatus === 'no_response') {
+      updateOutreachStatus(o.id, newStatus);
+    }
+  });
 }
 
 // ── Activity tracking ─────────────────────────
@@ -4797,13 +5858,15 @@ function showQuotaWarning() {
 function getApiKey() { return localStorage.getItem(LS.apikey) || ''; }
 function setApiKey(k){ localStorage.setItem(LS.apikey, k); }
 
-function reScoreAll() {
+function reScoreAll(useWeights) {
   const archiveWithProfile = { ...state, profile: state.profile };
+  const weights = useWeights || getWeights();
   state.contacts = state.contacts.map(c => {
     if (c.source === 'manual') return c;
-    const s = smartScore(c, archiveWithProfile);
+    const s = smartScore(c, archiveWithProfile, weights);
     const newGrade = s.score > (c.score || 0) ? s.grade : c.grade;
-    return { ...c, score: s.score, gradeReasons: s.reasons, warmthTier: s.warmthTier, msgCount: s.msgCount, grade: newGrade };
+    return { ...c, score: s.score, gradeReasons: s.reasons, warmthTier: s.warmthTier,
+             msgCount: s.msgCount, grade: newGrade, _lastMsgDate: s.lastMsgDate || c._lastMsgDate };
   });
   saveContacts();
 }
@@ -4894,10 +5957,9 @@ function gradeBadge(grade) {
 
 function statusBadge(status) {
   const map = {
-    'Not contacted':'badge-not-contacted','Message sent':'badge-message-sent',
-    'Replied':'badge-replied','Call done':'badge-call-done',
-    'Referral given':'badge-referral','Intro made':'badge-intro',
-    'No response':'badge-no-response'
+    'Not contacted':'badge-not-contacted','Messaged':'badge-message-sent',
+    'Replied':'badge-replied','Met':'badge-call-done',
+    'Referred me':'badge-referral','No response':'badge-no-response'
   };
   const cls = map[status] || 'badge-not-contacted';
   return `<span class="badge ${cls}">${h(status)}</span>`;
@@ -5533,11 +6595,13 @@ function init() {
     showBanner('You opened WarmPath directly. Use launch.command (Mac) or launch.bat (Windows) so your data persists consistently. ↗', 'warn');
   }
 
-  // If no real data yet, inject sample contacts so new users can explore immediately
+  // If no real data yet, inject sample data so new users can explore all tabs immediately
   if (state.contacts.length === 0) {
-    state.contacts  = SAMPLE_CONTACTS.map(c => ({ ...c }));
-    state.TARGET_COS = ['microsoft', 'razorpay', 'stripe', 'freshworks', 'atlassian'];
+    state.contacts     = SAMPLE_CONTACTS.map(c => ({ ...c }));
+    state.TARGET_COS   = ['microsoft', 'razorpay', 'stripe', 'freshworks', 'atlassian'];
     state.COMPANY_INTEL = JSON.parse(JSON.stringify(SAMPLE_COMPANY_INTEL));
+    state.JOBS         = SAMPLE_JOBS.map(j => ({ ...j }));
+    state.applications = SAMPLE_APPLICATIONS.map(a => ({ ...a }));
   }
 
   const onboarded = localStorage.getItem(LS.onboarded);
@@ -5546,6 +6610,20 @@ function init() {
     showOnboarding(1);
   } else {
     renderContactsTab();
+  }
+
+  // Backup reminder — show if real data and no backup in 7 days (or never)
+  if (!isSampleMode() && state.contacts.length > 0) {
+    const lastBackup = localStorage.getItem(LS.last_backup);
+    const daysSinceBackup = lastBackup
+      ? Math.floor((Date.now() - new Date(lastBackup)) / 86400000)
+      : Infinity;
+    if (daysSinceBackup > 7) {
+      const msg = lastBackup
+        ? `💾 Last backup was ${daysSinceBackup} days ago — your data only lives in this browser.`
+        : `💾 You haven't backed up WarmPath yet — your data only lives in this browser.`;
+      importBanner = { msg, type: 'warn', backupOffer: true };
+    }
   }
 }
 
