@@ -39,6 +39,8 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 - **Company status** — mark each company as Watching / No opening / On hold
 - All companies start collapsed — click to expand and see contacts
 - 🎯 target badge on companies matching your target list
+- **Two job search buttons per company** — `LI Jobs ↗` (LinkedIn) and `Careers ↗` (direct careers page for 30+ known companies; Google search fallback for others)
+- **Custom careers URL** — paste a company's careers page URL once inside the expanded group; it persists and replaces the default link permanently
 
 **By contact view**:
 - Classic paginated contact card list
@@ -47,6 +49,7 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 
 **Both views share:**
 - **Side drawer** per contact — click any card to open a 560px panel beside the list
+- **Find roles row** in drawer — one-click access to LinkedIn Jobs, Careers, Indeed, and Naukri for the contact's company
 - **Template selector** — pick from 5 built-in templates (job referral, advisory, speaking, networking, general) or your own custom templates; subject line auto-previews with placeholders filled
 - **AI outreach messages** tuned to relationship warmth (7 tiers); tone override: Casual / Professional / Formal
 - **JD-aware generation** — paste a job URL (auto-fetched) or paste the full JD text; message references specific requirements
@@ -57,7 +60,6 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 - **Job outreach history** in drawer — see all jobs you've approached this contact about, with live status dropdowns
 - **Glassdoor rating** — on-demand, per company header; fetched once and cached permanently
 - Works without an AI key using built-in warmth-tier templates
-- One-click LinkedIn Jobs, Indeed, Naukri, Glassdoor search per company
 - Filter by grade (A/B/C), status, relationship type, search
 
 ### Tab 2 — Jobs · *Track & Apply*
@@ -90,12 +92,13 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 **Profile sub-tab**
 - About you: name, headline, domain/industry, primary goal, seniority level, location, email, phone, LinkedIn URL
 - Background summary and target role
+- **Target role type** — used for contact scoring, job search keywords, and message personalisation. Works for any role — engineering, design, sales, finance, product, and more. The scoring engine adapts to whatever you set here; no role is hardcoded.
 - Resume paste (used for tailoring)
 - Target companies with AI-powered suggestions
 
 **Settings sub-tab**
 - Multi-provider AI config (Anthropic, OpenAI, Ollama, custom); API key help; job location preference (up to 3 ranked locations)
-- **Scoring weights** — adjust the 0–10 weight of each of the 12 signals; Recalculate and Reset to defaults buttons
+- **Scoring weights** — adjust the 0–10 weight of each of the 12 signals; Recalculate and Reset to defaults buttons. An inline nudge appears if your target role type is not set, since it affects scoring accuracy.
 - **Template library** — 5 built-in presets (view only) + add/delete your own custom templates with subject line and message body; supports `[name]`, `[company]`, `[role]`, `[your_name]`, `[goal]` placeholders
 - **Backup & Restore** — download all WarmPath data as a timestamped JSON; restore from backup with confirmation dialog. A reminder banner appears if no backup in 7 days.
 
@@ -116,6 +119,7 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 | Generic outreach suggestions | Tone + template matched to relationship warmth |
 | No connection between contacts and applications | Jobs tab links contacts ↔ roles ↔ applications |
 | Cloud-dependent | Works fully offline (except AI generation) |
+| Hardcoded for one type of role | Adapts to your target role — any field, any level |
 
 **Zero data leaves your machine.** Everything is stored in your browser's `localStorage`. No backend, no accounts, no database. Your LinkedIn connections, messages, and job search activity are yours alone.
 
@@ -134,6 +138,8 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 2. **Data Privacy** → **Get a copy of your data**
 3. Select **"Download larger data archive"** → Request archive
 4. Wait for the email (10–30 minutes) → Download the `.zip` file
+
+> **Archive takes 24–48 hours?** That's normal. You can still set up your profile and explore the app with sample data while you wait.
 
 ### Step 2 — Open WarmPath
 
@@ -164,9 +170,12 @@ Double-click index.html directly
 
 > **Before you import:** WarmPath pre-loads sample contacts, jobs, and applications so you can explore all three tabs immediately. All sample data is cleared automatically the moment your real archive is imported.
 
-### Step 4 — Set your target companies
+### Step 4 — Set your target role and companies
 
-Go to **Setup → Profile → Target companies**. Add the companies you most want to work at. These will sort to the top of the company view and boost contact scores.
+Go to **Setup → Profile**. Two fields matter most:
+
+- **Target role type** — e.g. "Senior Software Engineer", "VP Sales", "Staff Designer". This drives contact scoring, job search keywords, and message personalisation. Set it for your field — WarmPath is not limited to product roles.
+- **Target companies** — companies sort to the top of the Network view and contacts there get a score boost.
 
 ### Step 5 — Optional: Add an AI provider
 
@@ -209,25 +218,26 @@ Auto-syncs that happen without any manual work:
 ## The company view workflow
 
 1. **Open Network tab** — companies are listed, sorted by target → warmth
-2. **Click a company header** to expand — see grade summary and contacts
-3. **Expand contacts** — see individuals at the company
-4. **Generate message** — contact drawer generates an outreach message referencing the role
-5. **Add to Jobs tab** — track the role in your job pipeline
+2. **Click a company header** to expand — see grade summary, contacts, and job search buttons
+3. **Click `LI Jobs ↗`** to search LinkedIn, or **`Careers ↗`** to go directly to the company's careers page
+4. **Paste a custom careers URL** in the field at the bottom of the expanded group — it persists and replaces the default link
+5. **Click a contact card** to open the side drawer and generate outreach
 
 ---
 
 ## The contact outreach workflow
 
 1. **Click a contact card** → side drawer opens with their drafted message
-2. **Pick a template** (optional) — choose from presets or custom templates; subject line previews instantly
-3. **Link to a job** (optional) — associate with a tracked job from your Jobs tab
-4. **Customise** (optional) — enter a job title or URL, or paste the full JD; choose tone
-5. **Generate / Regenerate** — AI rewrites the message using JD requirements, template style, and relationship context
-6. **Edit** the message directly in the textarea
-7. **✓ Log as sent** — records the interaction; contact status advances to Messaged; all linked job outreach records sync automatically
-8. **Log response** — mark Replied / No response; outreach records sync; if a job is linked, status advances automatically
-9. **"Add to Jobs tracker?" prompt** — if a role was set, a one-click banner offers to create the Jobs entry without leaving the drawer
-10. The full **Interaction history** and **Job outreach history** timelines build automatically per contact
+2. **Use the Find roles row** to open LinkedIn Jobs, Careers, Indeed, or Naukri for that company in one click
+3. **Pick a template** (optional) — choose from presets or custom templates; subject line previews instantly
+4. **Link to a job** (optional) — associate with a tracked job from your Jobs tab
+5. **Customise** (optional) — enter a job title or URL, or paste the full JD; choose tone
+6. **Generate / Regenerate** — AI rewrites the message using JD requirements, template style, and relationship context
+7. **Edit** the message directly in the textarea
+8. **✓ Log as sent** — records the interaction; contact status advances to Messaged; all linked job outreach records sync automatically
+9. **Log response** — mark Replied / No response; outreach records sync; if a job is linked, status advances automatically
+10. **"Add to Jobs tracker?" prompt** — if a role was set, a one-click banner offers to create the Jobs entry without leaving the drawer
+11. The full **Interaction history** and **Job outreach history** timelines build automatically per contact
 
 ---
 
@@ -243,12 +253,14 @@ Every contact gets a composite score (0–200+) from 12 signals. All signal weig
 | Messaged within last 90 days | 8 | messages.csv |
 | At a target company | 8 | Connections.csv |
 | Recruiter at a target company | 7 | Connections.csv |
-| PM / product title | 7 | Connections.csv |
+| Target role type | 7 | Connections.csv |
 | Senior title matching your target | 5 | Connections.csv |
 | Connected recently (< 90 days) | 5 | Connections.csv |
 | Following their company | 4 | Company_Follows.csv |
 | Adjacent role (eng / design / HR) | 3 | Connections.csv |
 | Has email address | 2 | Connections.csv |
+
+**Target role type signal** — matches contacts whose title contains keywords from your **Setup → Profile → Target role type** field. Falls back to your LinkedIn headline keywords if that field is blank. Works for any role: "Staff Engineer", "VP Sales", "Senior Designer", "Data Scientist", etc.
 
 **Grade A** = score ≥ 55 (warm — prioritise this week)  
 **Grade B** = score 25–54 (lukewarm — worth a personalised message)  
@@ -288,6 +300,7 @@ warmpath/
 - AI message generation requires the local server launcher (CORS restriction when opening index.html directly)
 - AI features require an internet connection and a configured API key (or local Ollama)
 - Job match searches work best for companies with statically rendered careers pages; JS-rendered pages fall back to AI knowledge — always verify manually
+- Direct careers links are pre-mapped for ~30 companies; use the custom URL field for any others
 
 ---
 
@@ -297,6 +310,7 @@ warmpath/
 - [ ] Export interaction log as CSV
 - [ ] Contact location matching for post-job-search prioritisation
 - [ ] Multi-device sync via encrypted export/import
+- [ ] LinkedIn post generator for passive inbound outreach
 
 ---
 
@@ -314,4 +328,4 @@ This is an actively developed tool. If you use it and have thoughts — what's w
 
 ---
 
-*WarmPath works for any professional conducting a senior job search. No personal data is hardcoded. All data is supplied by the user at runtime via their own LinkedIn archive.*
+*WarmPath works for any professional conducting a senior job search — product, engineering, design, sales, finance, or any other field. No personal data is hardcoded. All data is supplied by the user at runtime via their own LinkedIn archive.*

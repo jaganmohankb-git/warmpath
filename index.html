@@ -803,6 +803,43 @@ const LINKEDIN_COMPANY_IDS = {
   leadsquared:'3448515'
 };
 
+// Direct careers page URLs for well-known companies.
+// Key must match the company name lowercased (same convention as LINKEDIN_COMPANY_IDS).
+// Google fallback is used for any company not listed here.
+const CAREERS_URLS = {
+  google:       'https://careers.google.com/jobs/results/',
+  microsoft:    'https://jobs.careers.microsoft.com/global/en/search',
+  stripe:       'https://stripe.com/jobs/search',
+  atlassian:    'https://www.atlassian.com/company/careers/all-jobs',
+  salesforce:   'https://careers.salesforce.com/en/jobs/',
+  hubspot:      'https://www.hubspot.com/careers/jobs',
+  twilio:       'https://www.twilio.com/en-us/company/jobs',
+  docusign:     'https://www.docusign.com/company/careers/open',
+  freshworks:   'https://careers.freshworks.com/jobs',
+  zoho:         'https://careers.zohocorp.com/jobs/Careers',
+  razorpay:     'https://razorpay.com/jobs/',
+  postman:      'https://www.postman.com/company/careers/',
+  clevertap:    'https://clevertap.com/company/careers/',
+  sprinklr:     'https://www.sprinklr.com/careers/',
+  darwinbox:    'https://darwinbox.com/careers',
+  chargebee:    'https://www.chargebee.com/careers/',
+  hasura:       'https://hasura.io/careers/',
+  juspay:       'https://careers.juspay.in/',
+  exotel:       'https://exotel.com/careers/',
+  setu:         'https://setu.co/careers',
+  keka:         'https://www.keka.com/careers',
+  leadsquared:  'https://www.leadsquared.com/careers/',
+  amazon:       'https://www.amazon.jobs/content/en/job-categories/software-development',
+  apple:        'https://jobs.apple.com/en-us/search',
+  meta:         'https://www.metacareers.com/jobs',
+  netflix:      'https://jobs.netflix.com/search',
+  adobe:        'https://careers.adobe.com/us/en/search-results',
+  oracle:       'https://careers.oracle.com/jobs',
+  sap:          'https://jobs.sap.com/search/',
+  intuit:       'https://careers.intuit.com/job-search-results',
+  workday:      'https://www.workday.com/en-us/company/careers/open-positions.html',
+};
+
 const LS = {
   contacts:'wp_contacts', applications:'wp_applications',
   profile:'wp_profile', msg:'wp_msg', rec:'wp_rec',
@@ -831,7 +868,7 @@ const SCORING_SIGNALS = [
   { id:'messageRecency', label:'Messaged within last 90 days',        defaultWeight:8  },
   { id:'targetCompany',  label:'At a target company',                defaultWeight:8  },
   { id:'recruiter',      label:'Recruiter at a target company',       defaultWeight:7  },
-  { id:'pmTitle',        label:'PM / product title',                 defaultWeight:7  },
+  { id:'pmTitle',        label:'Target role type',                    defaultWeight:7  },
   { id:'seniorTitle',    label:'Senior title matching your target',   defaultWeight:5  },
   { id:'connRecency',    label:'Connected recently (< 90 days)',      defaultWeight:5  },
   { id:'companyFollow',  label:'Following their company',             defaultWeight:4  },
@@ -1274,17 +1311,18 @@ function renderJobsTab() {
        </div>`
     : filtered.map(job => renderJobCard(job)).join('');
 
-  const hasSampleJobs = state.JOBS.some(j => j._sample);
+  const hasRealJobs = state.JOBS.some(j => !j._sample);
   const bannerDismissed = localStorage.getItem(LS.job_sample_banner) === '1';
-  const showSampleBanner = hasSampleJobs && !bannerDismissed;
+  const showSampleBanner = !hasRealJobs && !bannerDismissed;
+  const hasSampleJobs = state.JOBS.some(j => j._sample);
+  const bannerMsg = hasSampleJobs
+    ? 'These are <strong>sample jobs</strong> to help you explore the tracker. Delete them and add your own to get started.'
+    : 'No jobs tracked yet. Add your first role and link contacts to it to get started.';
 
   const sampleBannerHtml = showSampleBanner ? `
     <div id="job-sample-banner" style="display:flex;align-items:flex-start;gap:10px;background:#fffbeb;border:1px solid #f59e0b;border-radius:10px;padding:12px 14px;margin-bottom:16px">
       <span style="font-size:18px;line-height:1.2">📋</span>
-      <span style="flex:1;font-size:13px;color:#92400e;line-height:1.5">
-        These are <strong>sample jobs</strong> to help you explore the tracker.
-        Delete them and add your own to get started.
-      </span>
+      <span style="flex:1;font-size:13px;color:#92400e;line-height:1.5">${bannerMsg}</span>
       <button onclick="dismissJobSampleBanner()" style="background:none;border:none;cursor:pointer;font-size:16px;color:#b45309;line-height:1;padding:0 2px;flex-shrink:0" title="Dismiss">✕</button>
     </div>` : '';
 
@@ -1671,6 +1709,20 @@ function renderApplicationsTab() {
   const el = document.getElementById('tab-applications');
   const apps = state.applications;
 
+  const hasRealApps = apps.some(a => !a._sample);
+  const appBannerDismissed = localStorage.getItem('wp_app_sample_banner_dismissed') === '1';
+  const showAppBanner = !hasRealApps && !appBannerDismissed;
+  const hasSampleApps = apps.some(a => a._sample);
+  const appBannerMsg = hasSampleApps
+    ? 'These are <strong>sample applications</strong> to help you explore the pipeline. Add your own when you formally apply to a role.'
+    : 'No applications tracked yet. Use <strong>→ Move to Applications</strong> from the Jobs tab, or add one manually here.';
+  const appSampleBanner = showAppBanner ? `
+    <div id="app-sample-banner" style="display:flex;align-items:flex-start;gap:10px;background:#fffbeb;border:1px solid #f59e0b;border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <span style="font-size:18px;line-height:1.2">📋</span>
+      <span style="flex:1;font-size:13px;color:#92400e;line-height:1.5">${appBannerMsg}</span>
+      <button onclick="localStorage.setItem('wp_app_sample_banner_dismissed','1');document.getElementById('app-sample-banner')?.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;color:#b45309;line-height:1;padding:0 2px;flex-shrink:0" title="Dismiss">✕</button>
+    </div>` : '';
+
   // Pipeline counts
   const pipelineHtml = PIPELINE_STAGES.map(stage => {
     const count = apps.filter(a => stage.statuses.includes(a.status)).length;
@@ -1703,6 +1755,7 @@ function renderApplicationsTab() {
   });
 
   let html = `
+    ${appSampleBanner}
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
       <div>
         ${appReferrerFilter ? `<span class="banner banner-info" style="display:inline-flex;padding:6px 12px">
@@ -1842,6 +1895,8 @@ function saveAppModal(idx) {
   }
   saveApplications();
   updateNavCounts();
+  // Auto-dismiss Applications sample banner on first real entry
+  localStorage.setItem('wp_app_sample_banner_dismissed', '1');
 
   // If referredBy is set and via Referral, update that contact's status
   if (referredBy && via === 'Referral') {
@@ -2305,6 +2360,14 @@ function renderSetupTab() {
       <div style="font-size:13px;color:var(--muted);margin-bottom:14px">
         Adjust how much each signal contributes to warmth scores. Changes take effect when you click Recalculate.
       </div>
+      ${!(state.profile.target||'').trim() ? `
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:8px">
+        <span style="font-size:16px">⚠️</span>
+        <div style="font-size:13px;color:#92400e">
+          <strong>Target role type not set</strong> — the "Target role type" signal below will use generic PM keywords until you fill this in.<br>
+          <a href="#" onclick="event.preventDefault();document.getElementById('sp-target')?.scrollIntoView({behavior:'smooth'});document.getElementById('sp-target')?.focus()" style="color:#b45309;font-weight:600;text-decoration:underline">Set target role in Profile →</a>
+        </div>
+      </div>` : ''}
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
         ${(() => {
           const w = getWeights();
@@ -2782,12 +2845,37 @@ function showOnboarding(step) {
         <strong>WarmPath workflow:</strong> Surface warm contacts → find open roles → generate tailored outreach<br><br>
         A warm contact at a target company is worth more than any job posting.
       </div>
-      <div class="step-instructions">
-        To unlock AI features you'll need your LinkedIn archive (10–30 min to prepare):<br><br>
-        1. LinkedIn → Me → Settings &amp; Privacy<br>
-        2. Data Privacy → Get a copy of your data<br>
-        3. Select "Download larger data archive" → Request<br>
-        4. Wait for email → Download .zip
+      <div style="margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:10px">How to get your LinkedIn archive:</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:6px;font-size:13px">
+            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;margin-top:1px">1</span>
+            <span>Go to <strong>LinkedIn</strong> → click your profile photo → <strong>Settings &amp; Privacy</strong></span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:6px;font-size:13px">
+            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;margin-top:1px">2</span>
+            <span>Click <strong>Data Privacy</strong> → <strong>Get a copy of your data</strong></span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:6px;font-size:13px">
+            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;margin-top:1px">3</span>
+            <span>Select <strong>"Download larger data archive"</strong> and click <strong>Request archive</strong></span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:6px;font-size:13px">
+            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;margin-top:1px">4</span>
+            <span>Check your email in <strong>10–30 minutes</strong> and download the <strong>.zip</strong> file</span>
+          </div>
+        </div>
+      </div>
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px">
+        <span style="font-size:18px;flex-shrink:0">⏳</span>
+        <div style="font-size:13px;color:#92400e">
+          <strong>Don't have your LinkedIn archive yet?</strong> It can take 24–48 hours to arrive.<br>
+          <span style="color:#78350f">In the meantime, share your details and I'll match you manually:</span><br>
+          <a href="https://forms.gle/cpLCtdTnyiSM8AUW7" target="_blank" rel="noopener"
+            style="display:inline-block;margin-top:8px;padding:6px 14px;background:#f59e0b;color:#fff;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none">
+            Fill in details while I wait →
+          </a>
+        </div>
       </div>
       <div class="onboarding-actions">
         <button class="btn btn-ghost" onclick="skipOnboarding()">Skip setup</button>
@@ -2837,8 +2925,17 @@ function showOnboarding(step) {
           <input class="form-input" id="ob-headline" value="${h(p.headline||'')}" placeholder="e.g. Staff PM · Fintech"></div>
         <div class="form-field full"><label class="form-label">Background summary</label>
           <textarea class="form-textarea" id="ob-bg" placeholder="2–3 sentences about your experience…">${h(p.bg||'')}</textarea></div>
-        <div class="form-field full"><label class="form-label">Target role type</label>
-          <input class="form-input" id="ob-target" value="${h(p.target||'')}" placeholder="e.g. Staff PM at B2B SaaS"></div>
+        <div class="form-field full" style="border:1.5px solid var(--accent);border-radius:var(--radius);padding:10px 12px;background:var(--surface2)">
+          <label class="form-label" style="color:var(--accent);font-weight:700">
+            Target role type <span style="color:var(--amber);font-size:12px">★ important</span>
+          </label>
+          <input class="form-input" id="ob-target" value="${h(p.target||'')}"
+            placeholder="e.g. Staff PM at B2B SaaS · or · Senior Software Engineer · or · VP Sales"
+            style="border-color:var(--accent)">
+          <div style="font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5">
+            Used for contact scoring, job search keywords, and message personalisation. Works for <strong>any role</strong> — engineering, design, sales, finance, and more.
+          </div>
+        </div>
         <div class="form-field full">
           <label class="form-label">Anthropic API key <span style="color:var(--faint)">(optional)</span></label>
           <input class="form-input" type="password" id="ob-apikey" value="${h(getApiKey())}" placeholder="sk-ant-…">
@@ -3401,7 +3498,13 @@ function renderContactsByCompany(filtered) {
           </div>
         </div>
         <div class="company-group-right">
-          ${jobUrl ? `<a class="btn btn-secondary btn-sm" style="font-size:11px" href="${h(jobUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Jobs ↗</a>` : ''}
+          ${company !== '(No company)' ? (() => {
+            const links = getJobLinks(company, state.profile.target);
+            const liLink = links[0]; // LinkedIn Jobs
+            const careersLink = links[1]; // Direct careers or Google fallback
+            return `<a class="btn btn-secondary btn-sm" style="font-size:11px" href="${h(liLink.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Search on LinkedIn Jobs">LI Jobs ↗</a>
+                    <a class="btn btn-secondary btn-sm" style="font-size:11px" href="${h(careersLink.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${careersLink.label === 'Careers ↗' ? 'Direct careers page' : 'Search careers page on Google'}">${h(careersLink.label)}</a>`;
+          })() : ''}
           ${company !== '(No company)' ? `<select class="co-status-select${coStatus ? ' has-status' : ''}" onclick="event.stopPropagation()"
             onchange="event.stopPropagation(); setCompanyStatus('${safeCompany}', this.value)">
             <option value="">+ Status</option>
@@ -3417,6 +3520,15 @@ function renderContactsByCompany(filtered) {
       ${jobMatchSection}
       <div class="company-group-contacts">
         ${contacts.map(c => renderContactCard(c, state.contacts.indexOf(c))).join('')}
+      </div>
+      <div style="padding:8px 14px 10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2)" onclick="event.stopPropagation()">
+        <span style="font-size:11px;color:var(--faint);white-space:nowrap;font-weight:600">Careers URL</span>
+        <input type="url" placeholder="https://company.com/careers (optional — overrides default)"
+          value="${h(intel?.careersUrl || '')}"
+          style="flex:1;font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text)"
+          onchange="saveCareersUrl('${safeCompany}', this.value.trim())"
+          onkeydown="if(event.key==='Enter'){saveCareersUrl('${safeCompany}',this.value.trim());this.blur()}">
+        ${intel?.careersUrl ? `<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--faint)" onclick="saveCareersUrl('${safeCompany}','');this.closest('div').querySelector('input').value=''" title="Clear custom URL">✕</button>` : ''}
       </div>` : ''}
     </div>`;
   });
@@ -3690,10 +3802,25 @@ function closeSideDrawer() {
 // SECTION 8 · Outreach drawer + AI generation
 // ─────────────────────────────────────────────
 
+// B1: resolve the user's effective target role keyword, falling back to headline keywords
+function getTargetRoleKeyword() {
+  const target = (state.profile.target || '').trim();
+  if (target) return target.split(/[,;\/]/)[0].trim();
+  // Fallback: extract meaningful words from headline (skip stopwords and short tokens)
+  const headline = (state.profile.headline || '').toLowerCase();
+  const stop = new Set(['at','a','an','the','in','of','for','and','or','to','·','|','-','senior','staff','lead','head','vp','director','manager','engineer','principal','product']);
+  const words = headline.split(/[\s·|,;\-\/]+/).map(w => w.trim()).filter(w => w.length > 2 && !stop.has(w));
+  if (words.length) return words.slice(0, 2).join(' ');
+  return ''; // truly blank — caller will show nudge
+}
+
 function getJobLinks(company, targetRoles) {
   const co = (company || '').toLowerCase();
-  // Use only the first/primary target role for the keyword
-  const primaryRole = (targetRoles || 'product manager').split(/[,;\/]/)[0].trim() || 'product manager';
+  // Resolve keyword: prefer explicit arg, then profile target, then headline fallback
+  const resolvedRole = targetRoles
+    ? targetRoles.split(/[,;\/]/)[0].trim()
+    : getTargetRoleKeyword();
+  const primaryRole = resolvedRole || 'open roles';
   const kw = encodeURIComponent(primaryRole);
   const jobLocation = localStorage.getItem(LS.job_location) || 'India';
   const locKw = encodeURIComponent(jobLocation);
@@ -3702,15 +3829,30 @@ function getJobLinks(company, targetRoles) {
   const liId = Object.entries(LINKEDIN_COMPANY_IDS).find(([k]) => co === k || co.startsWith(k + ' ') || co.endsWith(' ' + k))?.[1]
     || Object.entries(LINKEDIN_COMPANY_IDS).find(([k]) => co.includes(k) && k.length >= 5)?.[1];
 
+  // A1: look up direct careers URL; fall back to Google search
+  const careersKey = Object.keys(CAREERS_URLS).find(k => co === k || co.includes(k) && k.length >= 4);
+  const careersUrl = careersKey
+    ? CAREERS_URLS[careersKey]
+    : `https://www.google.com/search?q=${encodeURIComponent(company)}+careers+${kw}`;
+  const careersLabel = careersKey ? 'Careers ↗' : 'Careers';
+
+  // Also check COMPANY_INTEL for a user-saved custom careers URL
+  const intel = state.COMPANY_INTEL ? state.COMPANY_INTEL[coKey(company)] : null;
+  const customCareers = intel?.careersUrl;
+
   const links = [];
   if (liId) {
-    links.push({ label: `LinkedIn Jobs`, url: `https://www.linkedin.com/jobs/search/?f_C=${liId}&keywords=${kw}&location=${locKw}&f_TPR=r2592000` });
+    links.push({ label: 'LinkedIn Jobs', url: `https://www.linkedin.com/jobs/search/?f_C=${liId}&keywords=${kw}&location=${locKw}&f_TPR=r2592000` });
   } else {
-    links.push({ label: `LinkedIn Jobs`, url: `https://www.linkedin.com/jobs/search/?keywords=${kw}+${encodeURIComponent(company)}&location=${locKw}&f_TPR=r2592000` });
+    links.push({ label: 'LinkedIn Jobs', url: `https://www.linkedin.com/jobs/search/?keywords=${kw}+${encodeURIComponent(company)}&location=${locKw}&f_TPR=r2592000` });
   }
-  links.push({ label: `Careers`, url: `https://www.google.com/search?q=${encodeURIComponent(company)}+careers+${kw}` });
-  links.push({ label: `Indeed`, url: `https://in.indeed.com/jobs?q=${kw}&l=${locKw}` });
-  links.push({ label: `Naukri`, url: `https://www.naukri.com/jobs-in-india?keyword=${kw}` });
+  if (customCareers) {
+    links.push({ label: 'Careers ↗', url: customCareers, custom: true });
+  } else {
+    links.push({ label: careersLabel, url: careersUrl });
+  }
+  links.push({ label: 'Indeed', url: `https://in.indeed.com/jobs?q=${kw}&l=${locKw}` });
+  links.push({ label: 'Naukri', url: `https://www.naukri.com/jobs-in-india?keyword=${kw}` });
   return links;
 }
 
@@ -3732,6 +3874,14 @@ function renderDrawerContent(idx) {
 
   // Glassdoor shown on company header only — not duplicated in contact drawer
 
+  // B3: detect blank target role for nudge
+  const hasTargetRole = !!(state.profile.target || '').trim();
+  const targetNudge = !hasTargetRole ? `
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:6px 10px;margin-bottom:10px;font-size:11px;color:#92400e;display:flex;align-items:center;gap:6px">
+      <span>⚠️</span>
+      <span>Job searches use generic keywords — <a href="#" onclick="event.preventDefault();switchTab('setup');setTimeout(()=>document.getElementById('sp-target')?.focus(),300)" style="color:var(--amber);font-weight:600;text-decoration:underline">set your target role</a> for better results.</span>
+    </div>` : '';
+
   drawer.innerHTML = `
     <div style="padding:4px 0 12px">
 
@@ -3746,6 +3896,14 @@ function renderDrawerContent(idx) {
           ${c._boosted ? '🔥 Boosted' : '⚡ Boost'}
         </button>
       </div>
+
+      <!-- ① b: Job search links + target role nudge -->
+      ${targetNudge}
+      ${c.company ? `
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+        <span style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.4px;flex-shrink:0">Find roles</span>
+        ${jobLinks.map(l => `<a class="btn btn-secondary btn-sm" style="font-size:11px" href="${h(l.url)}" target="_blank" rel="noopener">${h(l.label)}</a>`).join('')}
+      </div>` : ''}
 
       <!-- ② Message — PRIMARY: visible immediately, no scrolling needed -->
       ${(() => {
@@ -5391,6 +5549,16 @@ function setCompanyStatus(company, status) {
   renderContactsList();
 }
 
+function saveCareersUrl(company, url) {
+  const key = coKey(company);
+  if (!state.COMPANY_INTEL[key]) state.COMPANY_INTEL[key] = {};
+  if (url) state.COMPANY_INTEL[key].careersUrl = url;
+  else delete state.COMPANY_INTEL[key].careersUrl;
+  saveCompanyIntel();
+  // Re-render so Careers button updates to "Careers ↗" direct link
+  renderContactsList();
+}
+
 function copyResumePrompt(idx) {
   const c         = state.contacts[idx];
   const profile   = state.profile;
@@ -5597,10 +5765,24 @@ function smartScore(contact, archiveData, weights) {
   const isCurrentCo = currentCo && co.includes(currentCo);
   if (!isCurrentCo && TARGET_COS.some(t => co.includes(t))) { score += ws(40,'targetCompany'); reasons.push('at target company'); }
 
-  // Signal 4: PM or product title
-  const pmTitles = ['product manager','head of product','vp product','director of product',
-    'chief product','group pm','principal pm','staff pm','cpo',' pm ','pm,'];
-  if (pmTitles.some(t => pos.includes(t))) { score += ws(35,'pmTitle'); reasons.push('product role'); }
+  // Signal 4: Contact's title matches user's target role type
+  // B1: try target → primaryGoal → headline keywords in order; last resort: PM hardcoded defaults
+  const _stop4 = new Set(['at','a','an','the','in','of','for','and','or','to','·','|','-']);
+  const _targetSrc = (state.profile.target || state.profile.primaryGoal || '').toLowerCase();
+  let targetKeywords = _targetSrc.split(/[\s,;\/\-·|]+/).map(w => w.trim())
+    .filter(w => w.length > 2 && !_stop4.has(w));
+  if (!targetKeywords.length) {
+    // B1 fallback: extract from headline
+    const _hl = (state.profile.headline || '').toLowerCase();
+    const _hlStop = new Set([..._stop4, 'senior','staff','lead','head','vp','director','manager','engineer','principal','product']);
+    targetKeywords = _hl.split(/[\s·|,;\-\/]+/).map(w => w.trim())
+      .filter(w => w.length > 2 && !_hlStop.has(w)).slice(0, 3);
+  }
+  const roleMatches = targetKeywords.length > 0
+    ? targetKeywords.some(kw => pos.includes(kw))
+    : ['product manager','head of product','vp product','director of product',
+       'chief product','group pm','principal pm','staff pm','cpo',' pm ','pm,'].some(t => pos.includes(t));
+  if (roleMatches) { score += ws(35,'pmTitle'); reasons.push('target role type'); }
 
   // Signal 5: Exact tenure overlap (exColleague weight)
   const careerPeriods = POSITIONS_DATA.map(p => ({
@@ -6184,7 +6366,7 @@ function detectFileType(filename) {
   if (f.includes('connection'))  return 'connections';
   if (f.includes('message'))     return 'messages';
   if (f.includes('position'))    return 'positions';
-  if (f.includes('recommend'))   return 'recommendations';
+  if (f.includes('recommend') && f.includes('received'))   return 'recommendations';
   if (f.includes('endorsement')) return 'endorsements';
   if (f.includes('company'))     return 'company_follows';
   if (f.includes('skill'))       return 'skills';
