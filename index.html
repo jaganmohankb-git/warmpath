@@ -1247,7 +1247,10 @@ function renderJobsTab() {
         <div class="form-field"><label class="form-label">Company *</label>
           <input class="form-input" id="jf-company" placeholder="e.g. Google"></div>
         <div class="form-field"><label class="form-label">Job URL</label>
-          <input class="form-input" id="jf-url" placeholder="https://careers.google.com/…" oninput="prefillJobFromUrl(this.value)">
+          <div style="display:flex;gap:6px;align-items:center">
+            <input class="form-input" id="jf-url" placeholder="https://careers.google.com/…" oninput="prefillJobFromUrl(this.value)" style="flex:1">
+            <button class="btn btn-ghost btn-sm" onclick="fetchJobFormDetails()" title="Fetch title &amp; company from URL using AI">Read ↗</button>
+          </div>
           <div id="jf-url-hint" style="font-size:11px;margin-top:3px;min-height:14px"></div></div>
         <div class="form-field"><label class="form-label">Source</label>
           <select class="form-select" id="jf-source">
@@ -1382,6 +1385,76 @@ function submitAddJob() {
   expandedJobs.add(job.id);
   showAddJobForm = false;
   renderJobsTab();
+}
+
+async function fetchJobFormDetails() {
+  const urlEl   = document.getElementById('jf-url');
+  const hintEl  = document.getElementById('jf-url-hint');
+  const url     = urlEl?.value?.trim();
+  if (!url || !url.startsWith('http')) {
+    if (hintEl) { hintEl.textContent = '⚠️ Enter a URL first'; hintEl.style.color = 'var(--red)'; }
+    return;
+  }
+
+  const cfg = getAIConfig();
+  if (!cfg.apiKey && cfg.provider !== 'ollama') {
+    // Fall back to URL regex only — already done via prefillJobFromUrl, just nudge
+    if (hintEl) { hintEl.innerHTML = '⚠️ No AI key — using URL parsing only. <a href="#" onclick="switchTab(\'setup\');switchSetupTab(\'settings\');return false" style="color:var(--purple)">Add key →</a>'; hintEl.style.color = 'var(--amber)'; }
+    return;
+  }
+
+  if (hintEl) { hintEl.textContent = 'Reading URL…'; hintEl.style.color = 'var(--muted)'; }
+
+  const prompt = `You have web search access. Visit this job posting URL and extract details: ${url}
+
+Return ONLY this JSON (no other text):
+{"success":true,"title":"exact job title","company":"company name","refId":"job reference ID or requisition number if visible, else null","location":"city or remote"}
+
+If you cannot access the page, return: {"success":false,"reason":"brief reason"}`;
+
+  try {
+    const raw    = await callAI(prompt, 400, cfg.provider === 'anthropic');
+    const match  = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('no json');
+    const result = JSON.parse(match[0]);
+
+    if (!result.success) {
+      if (hintEl) { hintEl.textContent = `⚠️ Couldn't read URL: ${result.reason || 'blocked'}. Fill manually.`; hintEl.style.color = 'var(--amber)'; }
+      return;
+    }
+
+    // Fill fields (only if currently empty)
+    const set = (id, val) => { if (val) { const el = document.getElementById(id); if (el && !el.value) el.value = val; } };
+    set('jf-title',   result.title);
+    set('jf-company', result.company);
+    if (result.refId) {
+      const notes = document.getElementById('jf-notes');
+      if (notes && !notes.value) notes.value = `Ref: ${result.refId}`;
+    }
+
+    // Duplicate check
+    const dupTitle   = (result.title   || '').toLowerCase();
+    const dupCompany = (result.company || '').toLowerCase();
+    const dupRef     = result.refId;
+    const duplicate  = state.JOBS.find(j =>
+      (dupRef && (j.notes || '').includes(dupRef)) ||
+      (j.title.toLowerCase() === dupTitle && j.company.toLowerCase() === dupCompany)
+    );
+
+    if (duplicate) {
+      if (hintEl) {
+        hintEl.innerHTML = `⚠️ <strong>Possible duplicate</strong> — "${h(duplicate.title)}" @ ${h(duplicate.company)} already in Jobs (${duplicate.status}). <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:1px 6px" onclick="showAddJobForm=false;renderJobsTab()">Cancel</button>`;
+        hintEl.style.color = 'var(--amber)';
+      }
+      return;
+    }
+
+    const parts = [result.title, result.company, result.refId ? `#${result.refId}` : '', result.location].filter(Boolean);
+    if (hintEl) { hintEl.textContent = `✓ ${parts.join(' · ')}`; hintEl.style.color = 'var(--teal)'; }
+
+  } catch(e) {
+    if (hintEl) { hintEl.textContent = '✗ Error reading URL — fill fields manually.'; hintEl.style.color = 'var(--red)'; }
+  }
 }
 
 function parseJobUrl(url) {
@@ -3691,8 +3764,11 @@ function renderDrawerContent(idx) {
             ${getTemplates().map(t => `<option value="${h(t.id)}">${h(t.name)}${t.editable===false?'':' ✎'}</option>`).join('')}
           </select>
           <div id="template-subject-${idx}" style="font-size:11px;color:var(--teal);margin-bottom:8px;display:none"></div>
-          <div class="drawer-section-label" style="margin-top:4px">Link to tracked job</div>
-          <select id="msg-job-${idx}" style="width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+            <div class="drawer-section-label" style="margin:0">Link to tracked job</div>
+            <button class="btn btn-ghost btn-sm" style="font-size:11px;padding:1px 6px" title="Refresh job list" onclick="refreshJobDropdown(${idx})">↻</button>
+          </div>
+          <select id="msg-job-${idx}" style="width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);margin-bottom:10px;margin-top:4px">
             <option value="">— none —</option>
             ${state.JOBS.filter(j=>['Pursuing','Applied','Interviewing'].includes(j.status)).map(j=>`<option value="${h(j.id)}">${h(j.title)} @ ${h(j.company)}</option>`).join('')}
           </select>
@@ -3712,7 +3788,7 @@ function renderDrawerContent(idx) {
           ` : `
             <div class="role-row" style="margin-bottom:3px">
               <input class="role-input" id="role-input-${idx}" placeholder="Job title or URL"
-                value="${h(c.savedRole || '')}">
+                value="${h(c.savedRole || '')}" oninput="onRoleInputChange(${idx}, this.value)">
               <button class="btn btn-ghost btn-sm" onclick="fetchJdContent(${idx})" title="Try to read JD from URL">Read ↗</button>
               <button class="btn btn-primary btn-sm" onclick="generateMessage(${idx})">
                 <span id="gen-spinner-${idx}" class="spinner hidden"></span>Regenerate
@@ -4080,6 +4156,74 @@ ${interactionRules}
   } finally {
     if (spinner) spinner.classList.add('hidden');
   }
+}
+
+function onRoleInputChange(idx, value) {
+  const url = value.trim();
+  if (!url.startsWith('http')) return;
+  const parsed = parseJobUrl(url);
+  if (!parsed) return;
+
+  // Try to auto-select a matching job already in the dropdown
+  const jobSel = document.getElementById(`msg-job-${idx}`);
+  if (jobSel && parsed.company) {
+    const coLower = parsed.company.toLowerCase();
+    const match = state.JOBS.find(j =>
+      ['Pursuing','Applied','Interviewing'].includes(j.status) &&
+      j.company.toLowerCase() === coLower &&
+      (!parsed.title || j.title.toLowerCase().includes(parsed.title.toLowerCase().split(' ')[0]))
+    );
+    if (match && jobSel.value !== match.id) {
+      jobSel.value = match.id;
+      setDrawerStatus(idx, `✓ Linked to "${match.title}" from your Jobs tracker`, 'success');
+      return;
+    }
+  }
+
+  // No match — offer to create one (only if company detected)
+  if (!parsed.company) return;
+  const existing = document.getElementById(`role-url-job-hint-${idx}`);
+  if (existing) existing.remove();
+  const hint = document.createElement('div');
+  hint.id = `role-url-job-hint-${idx}`;
+  hint.style.cssText = 'font-size:11px;margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+  const title = parsed.title || 'this role';
+  hint.innerHTML = `<span style="color:var(--teal)">✓ Detected: <strong>${parsed.company}</strong>${parsed.title ? ' · ' + parsed.title : ''}</span>
+    <button class="btn btn-sm btn-ghost" style="font-size:11px;padding:1px 8px"
+      onclick="quickAddJobFromUrl(${idx},'${(parsed.title||'').replace(/'/g,"\\'")}','${parsed.company.replace(/'/g,"\\'")}','${url.replace(/'/g,"\\'")}');this.parentElement.remove()">
+      + Add to Jobs
+    </button>`;
+  const roleInput = document.getElementById(`role-input-${idx}`);
+  roleInput?.parentElement?.insertAdjacentElement('afterend', hint);
+}
+
+function refreshJobDropdown(idx) {
+  const sel = document.getElementById(`msg-job-${idx}`);
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— none —</option>' +
+    state.JOBS
+      .filter(j => ['Pursuing','Applied','Interviewing'].includes(j.status))
+      .map(j => `<option value="${j.id}"${j.id === current ? ' selected' : ''}>${j.title} @ ${j.company}</option>`)
+      .join('');
+}
+
+function quickAddJobFromUrl(idx, title, company, url) {
+  clearSampleData();
+  const finalTitle = title || prompt(`Job title for this role at ${company}?`, '');
+  if (!finalTitle) return;
+  const job = addJob(finalTitle, company, url, 'Company site', '');
+  // Auto-select in the dropdown
+  const jobSel = document.getElementById(`msg-job-${idx}`);
+  if (jobSel) {
+    const opt = document.createElement('option');
+    opt.value = job.id;
+    opt.textContent = `${finalTitle} @ ${company}`;
+    opt.selected = true;
+    jobSel.appendChild(opt);
+  }
+  updateNavCounts();
+  setDrawerStatus(idx, `✓ Added "${finalTitle}" @ ${company} to Jobs tracker`, 'success');
 }
 
 function onTemplateChange(idx) {
