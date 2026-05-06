@@ -819,7 +819,8 @@ const LS = {
   jobs: 'wp_jobs',
   outreach: 'wp_outreach',
   templates: 'wp_templates',
-  last_backup: 'wp_last_backup'
+  last_backup: 'wp_last_backup',
+  job_sample_banner: 'wp_job_sample_banner_dismissed'
 };
 
 // ─── Scoring signal definitions ───────────────
@@ -1273,11 +1274,26 @@ function renderJobsTab() {
        </div>`
     : filtered.map(job => renderJobCard(job)).join('');
 
+  const hasSampleJobs = state.JOBS.some(j => j._sample);
+  const bannerDismissed = localStorage.getItem(LS.job_sample_banner) === '1';
+  const showSampleBanner = hasSampleJobs && !bannerDismissed;
+
+  const sampleBannerHtml = showSampleBanner ? `
+    <div id="job-sample-banner" style="display:flex;align-items:flex-start;gap:10px;background:#fffbeb;border:1px solid #f59e0b;border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <span style="font-size:18px;line-height:1.2">📋</span>
+      <span style="flex:1;font-size:13px;color:#92400e;line-height:1.5">
+        These are <strong>sample jobs</strong> to help you explore the tracker.
+        Delete them and add your own to get started.
+      </span>
+      <button onclick="dismissJobSampleBanner()" style="background:none;border:none;cursor:pointer;font-size:16px;color:#b45309;line-height:1;padding:0 2px;flex-shrink:0" title="Dismiss">✕</button>
+    </div>` : '';
+
   el.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <h2 style="font-size:18px;font-weight:700">Jobs <span style="font-size:13px;font-weight:400;color:var(--muted)">${state.JOBS.length} tracked</span></h2>
       <button class="btn btn-primary" onclick="showAddJobForm=true;renderJobsTab()">+ Add job</button>
     </div>
+    ${sampleBannerHtml}
     ${addJobForm}
     <div class="grade-pill-row" style="margin-bottom:16px">${filterBtns}</div>
     ${jobCards}`;
@@ -1374,6 +1390,11 @@ function toggleJobExpand(jobId) {
   renderJobsTab();
 }
 
+function dismissJobSampleBanner() {
+  localStorage.setItem(LS.job_sample_banner, '1');
+  document.getElementById('job-sample-banner')?.remove();
+}
+
 function submitAddJob() {
   const title   = document.getElementById('jf-title')?.value?.trim();
   const company = document.getElementById('jf-company')?.value?.trim();
@@ -1384,6 +1405,8 @@ function submitAddJob() {
   const job    = addJob(title, company, url, source, notes);
   expandedJobs.add(job.id);
   showAddJobForm = false;
+  // Auto-dismiss sample banner when user adds their first real job
+  localStorage.setItem(LS.job_sample_banner, '1');
   renderJobsTab();
 }
 
@@ -5837,6 +5860,10 @@ function deleteJob(jobId) {
   state.JOBS    = state.JOBS.filter(j => j.id !== jobId);
   state.OUTREACH= state.OUTREACH.filter(o => o.jobId !== jobId);
   saveJobs(); saveOutreach();
+  // Auto-dismiss banner if no sample jobs remain
+  if (!state.JOBS.some(j => j._sample)) {
+    localStorage.setItem(LS.job_sample_banner, '1');
+  }
   renderJobsTab();
 }
 

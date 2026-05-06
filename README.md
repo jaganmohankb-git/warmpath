@@ -50,7 +50,7 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 - **Template selector** — pick from 5 built-in templates (job referral, advisory, speaking, networking, general) or your own custom templates; subject line auto-previews with placeholders filled
 - **AI outreach messages** tuned to relationship warmth (7 tiers); tone override: Casual / Professional / Formal
 - **JD-aware generation** — paste a job URL (auto-fetched) or paste the full JD text; message references specific requirements
-- **Link to tracked job** — associate a message draft with a job from your Jobs tab
+- **Link to tracked job** — associate a message draft with a job from your Jobs tab; paste a JD URL and it auto-detects the matching job and selects it, or offers to create a new one; ↻ refresh button updates the list without reopening the drawer
 - **Copy resume prompt** — one click generates a tailored Claude.ai prompt for resume rewriting; paste it into claude.ai
 - **Resume fact-checker** — compares dates and contact info across LinkedIn data, pasted resume, and your profile; flags mismatches
 - **Interaction audit log** — every message sent is logged with date, role, and response (Replied / No response / Not interested); full timeline per contact
@@ -62,13 +62,15 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 
 ### Tab 2 — Jobs · *Track & Apply*
 - **Job registry** — add any role you're pursuing with title, company, URL, status, and notes
-- **Job URL auto-fill** — paste a Greenhouse, Lever, Workday, Ashby, LinkedIn, Indeed, or Naukri URL and company, title, and reference ID are detected instantly
+- **Job URL auto-fill** — paste a Greenhouse, Lever, Workday, Ashby, LinkedIn, Indeed, or Naukri URL and company, title, and reference ID are detected instantly via regex; **Read ↗ button** fetches the live page via AI to extract title, company, and ref ID for URLs that can't be parsed from structure alone
+- **Duplicate detection** — Read ↗ checks existing jobs by reference ID and title+company before adding; warns if a match is found
 - **Job pipeline**: Pursuing → Applied → Interviewing → Offer → Closed
 - **Link contacts to jobs** as outreach records — track each contact-job pair through an 8-status outreach pipeline: Planned → Messaged → Replied → Had a call → Referral asked → Referred ✓ → Not referring → No response
 - **Company-first contact selector** — the "Link a contact" dropdown shows people at that company first, sorted by warmth score, with a search box for everyone else
 - **→ Move to Applications** — one-click handoff when a job reaches Applied or Interviewing; pre-fills the referred-by name from outreach records automatically
 - Active job count (Pursuing + Applied + Interviewing) shown in the nav tab badge
 - Filter jobs by status
+- **Sample data banner** — new users see an amber dismissible banner indicating the pre-loaded jobs are examples; auto-hides when the first real job is added or all sample jobs are deleted
 
 ### Tab 3 — Applications · *Interview & Close*
 - Pipeline board: Applied → Screening → Interviewing → Final → Offer → Closed
