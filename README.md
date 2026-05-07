@@ -51,7 +51,13 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 - **Side drawer** per contact — click any card to open a 560px panel beside the list
 - **Find roles row** in drawer — one-click access to LinkedIn Jobs, Careers, Indeed, and Naukri for the contact's company
 - **Template selector** — pick from 5 built-in templates (job referral, advisory, speaking, networking, general) or your own custom templates; subject line auto-previews with placeholders filled
-- **AI outreach messages** tuned to relationship warmth (7 tiers); tone override: Casual / Professional / Formal
+- **Goal-aware AI outreach** — message framing automatically matches your Primary Goal:
+  - **Job Search** — warm referral request, peer-to-peer, role-specific
+  - **Recruiting** — recruiter-to-peer outreach exploring referral sources or passive candidates; never reads as a job seeker
+  - **Advisory/Consulting** — positions you as an advisor, not a vendor or applicant; no-pitch framing
+  - **Networking** — pure relationship maintenance; no ask, no agenda
+  - Manual template selection always overrides the goal default
+- Tone override per message: Casual / Professional / Formal
 - **JD-aware generation** — paste a job URL (auto-fetched) or paste the full JD text; message references specific requirements
 - **Link to tracked job** — associate a message draft with a job from your Jobs tab; paste a JD URL and it auto-detects the matching job and selects it, or offers to create a new one; ↻ refresh button updates the list without reopening the drawer
 - **Copy resume prompt** — one click generates a tailored Claude.ai prompt for resume rewriting; paste it into claude.ai
@@ -90,8 +96,13 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 - Last imported date with 60-day re-import nudge
 
 **Profile sub-tab**
-- About you: name, headline, domain/industry, primary goal, seniority level, location, email, phone, LinkedIn URL
+- About you: name, headline, domain/industry, seniority level, location, email, phone, LinkedIn URL
 - Background summary and target role
+- **Primary Goal** — drives the AI message framing across all contacts automatically:
+  - `Job Search` — referral-request style (default)
+  - `Recruiting` — recruiter outreach; explores referrals, passive candidates, hiring manager intros
+  - `Advisory/Consulting` — advisor introduction; peer framing, no job-seeking language
+  - `Networking` — relationship maintenance; no ask, no agenda
 - **Target role type** — used for contact scoring, job search keywords, and message personalisation. Works for any role — engineering, design, sales, finance, product, and more. The scoring engine adapts to whatever you set here; no role is hardcoded.
 - Resume paste (used for tailoring)
 - Target companies with AI-powered suggestions
@@ -116,7 +127,7 @@ A warm contact at a target company is worth more than any job posting. WarmPath 
 | Start with job listings | Start with warm contacts |
 | Data lives on someone's server | Data lives only in your browser |
 | Requires signup / account | Double-click to open |
-| Generic outreach suggestions | Tone + template matched to relationship warmth |
+| Generic outreach suggestions | Tone + template matched to relationship warmth and your goal (job search, recruiting, advisory, networking) |
 | No connection between contacts and applications | Jobs tab links contacts ↔ roles ↔ applications |
 | Cloud-dependent | Works fully offline (except AI generation) |
 | Hardcoded for one type of role | Adapts to your target role — any field, any level |

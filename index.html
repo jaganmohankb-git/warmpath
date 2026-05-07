@@ -4194,17 +4194,37 @@ async function generateMessage(idx) {
 
   // No AI configured — use selected template or built-in static template
   if (!cfg.apiKey && cfg.provider !== 'ollama') {
-    const scored = smartScore(c, state);
+    const scored   = smartScore(c, state);
+    // goalMode: manual template always wins; otherwise derive from primaryGoal
+    const goalMode = selectedTmpl ? 'manual' : (state.profile.primaryGoal || 'Job Search');
     let tmplText;
+    let statusMsg;
     if (selectedTmpl?.staticTemplate) {
-      tmplText = fillTemplatePlaceholders(selectedTmpl.staticTemplate, c, state.profile, linkedJob);
+      tmplText  = fillTemplatePlaceholders(selectedTmpl.staticTemplate, c, state.profile, linkedJob);
+      statusMsg = `📝 Using template: ${selectedTmpl.name}`;
+    } else if (goalMode === 'Recruiting') {
+      const firstName = (c.name || '').split(' ')[0];
+      const roleRef   = roleHint && !isUrl(roleHint) ? ` for a ${roleHint} role` : '';
+      tmplText  = `Hi ${firstName},\n\nI'm building out a team${roleRef} and thought of you — your network and perspective would be invaluable as I try to find the right people.\n\nWould you be open to a quick chat? Happy to work around your schedule.`;
+      statusMsg = '📝 Using recruiter template (add an AI key in Setup → Settings for personalised messages)';
+    } else if (goalMode === 'Advisory/Consulting') {
+      const preset  = PRESET_TEMPLATES.find(t => t.id === 'advisory');
+      tmplText  = preset ? fillTemplatePlaceholders(preset.staticTemplate, c, state.profile, linkedJob)
+                         : getStaticTemplate(scored.warmthTier, c, state.profile, interactionState);
+      statusMsg = '📝 Using advisory template (add an AI key in Setup → Settings for personalised messages)';
+    } else if (goalMode === 'Networking') {
+      const preset  = PRESET_TEMPLATES.find(t => t.id === 'networking');
+      tmplText  = preset ? fillTemplatePlaceholders(preset.staticTemplate, c, state.profile, linkedJob)
+                         : getStaticTemplate(scored.warmthTier, c, state.profile, interactionState);
+      statusMsg = '📝 Using networking template (add an AI key in Setup → Settings for personalised messages)';
     } else {
-      tmplText = getStaticTemplate(scored.warmthTier, c, state.profile, interactionState);
+      tmplText  = getStaticTemplate(scored.warmthTier, c, state.profile, interactionState);
       if (isUrl(roleHint)) tmplText += `\n\nRole I had in mind: ${roleHint}`;
+      statusMsg = '📝 Using a built-in template (no AI key set — add one in Setup → Settings for personalised messages)';
     }
     if (ta) ta.value = tmplText;
     state.contacts[idx]._draftMsg = tmplText;
-    setDrawerStatus(idx, selectedTmpl ? `📝 Using template: ${selectedTmpl.name}` : '📝 Using a built-in template (no AI key set — add one in Setup → Settings for personalised messages)', 'info');
+    setDrawerStatus(idx, statusMsg, 'info');
     return;
   }
 
@@ -4272,11 +4292,118 @@ This is a warm follow-through — NOT a cold intro. They engaged, so skip all pr
   const bgSnippet  = (profile.bg || 'Senior product professional').slice(0, 500);
   const jdSnippet  = jdContext && jdContext !== roleHint ? jdContext.slice(0, 1000) : '';
 
+  // goalMode: manual template selection always wins; otherwise derive from primaryGoal
+  const goalMode = selectedTmpl ? 'manual' : (profile.primaryGoal || 'Job Search');
+
+  // When a template is manually selected, its systemPrompt overrides the goal framing
   const templateSystemNote = selectedTmpl?.systemPrompt
     ? `\nTEMPLATE STYLE: ${selectedTmpl.systemPrompt}`
     : '';
 
-  const prompt = `You are writing a LinkedIn direct message on behalf of ${profile.name || 'the user'}.${templateSystemNote}
+  // Shared contact context block — reused across all goal prompts
+  const contactBlock = `CONTACT:
+Name: ${c.name}
+Role: ${c.role || ''}
+Company: ${c.company || ''}
+Relationship: ${c.relationship || ''}
+Messages exchanged (LinkedIn history): ${scored.msgCount}
+Warmth: ${scored.warmthTier} · Grade ${scored.grade}
+${interactionContext}`;
+
+  const toneBlock = `TONE: ${tone.tone}
+OPENING: ${tone.opening}`;
+
+  const commonDontList = `- Do NOT use: "hope this message finds you well", "I am reaching out", "synergy", "leverage", "circle back", "I came across your profile"`;
+
+  let prompt;
+
+  if (goalMode === 'Recruiting') {
+    // ── Recruiter mode ──
+    prompt = `You are helping an in-house recruiter reach out to their warm connections.
+Draft a short, professional outreach message (3 sentences max) from a recruiter's perspective.
+The goal is to explore whether this contact could be a referral source, intro to a passive candidate, or hiring manager connection.
+Do NOT write as a job seeker. Tone: warm, peer-level, not transactional.
+
+RECRUITER:
+Name: ${profile.name || 'the recruiter'}
+Headline: ${(profile.headline || '').slice(0, 120)}
+Background: ${bgSnippet}
+
+${contactBlock}
+${roleHint ? `ROLE BEING HIRED FOR: ${roleHint}` : ''}
+${jdSnippet ? `ROLE DESCRIPTION:\n${jdSnippet}` : ''}
+
+${toneBlock}
+
+RULES:
+- 3 sentences maximum — be concise
+- Write as a recruiter to a peer, not as a candidate to a gatekeeper
+${commonDontList}
+- Do NOT ask for a job, mention applying, or hint at the recruiter's own employment status
+- Frame the ask as: exploring referrals, intros to passive candidates, or learning who the right hiring contact is
+- End with an easy, low-commitment question
+${interactionRules}
+- Output ONLY the message text — no subject line, no preamble`;
+
+  } else if (goalMode === 'Advisory/Consulting') {
+    // ── Advisory / Consulting mode ──
+    const advisoryDomain = (profile.target || profile.headline || 'their domain').slice(0, 100);
+    prompt = `You are helping an independent advisor reach out to a LinkedIn connection to introduce their advisory practice.
+Generate a warm message that positions the advisor as a peer — not a vendor, not a job seeker.
+
+ADVISOR:
+Name: ${profile.name || 'the advisor'}
+Headline: ${(profile.headline || '').slice(0, 120)}
+Background: ${bgSnippet}
+Advisory domain: ${advisoryDomain}
+
+${contactBlock}
+${roleHint ? `CONTEXT / ANGLE: ${roleHint}` : ''}
+${jdSnippet ? `ADDITIONAL CONTEXT:\n${jdSnippet}` : ''}
+
+${toneBlock}
+
+RULES:
+- Under 120 words
+- Do NOT write as a job seeker or mention looking for employment
+- Briefly mention advisory domain expertise and its relevance to the contact's company
+- Offer a no-commitment conversation, not a sales pitch
+- Position as peer-level — curious, not pitching
+${commonDontList}
+- Do NOT use "pick your brain"
+- End with a soft, open question
+${interactionRules}
+- Output ONLY the message text — no subject line, no preamble`;
+
+  } else if (goalMode === 'Networking') {
+    // ── Pure networking / relationship maintenance mode ──
+    prompt = `You are helping a senior professional strengthen their network by reconnecting with a LinkedIn connection.
+This is pure relationship maintenance — no ask, no agenda, just genuine reconnection.
+
+USER:
+Name: ${profile.name || 'the sender'}
+Headline: ${(profile.headline || '').slice(0, 120)}
+Background: ${bgSnippet}
+
+${contactBlock}
+${roleHint ? `TOPIC / ANGLE: ${roleHint}` : ''}
+
+${toneBlock}
+
+RULES:
+- Under 100 words
+- Do NOT ask for a job, referral, intro, or any specific favour
+- Show genuine curiosity about what the contact is working on
+- Offer something of value — insight, congratulations, a relevant article, or an introduction
+- Pure relationship maintenance — the message should feel like a friendly check-in, not an opener for a request
+${commonDontList}
+- Do NOT use "catch up" or "coffee chat"
+${interactionRules}
+- Output ONLY the message text — no subject line, no preamble`;
+
+  } else {
+    // ── Default: Job Search outreach ──
+    prompt = `You are writing a LinkedIn direct message on behalf of ${profile.name || 'the user'}.${templateSystemNote}
 
 USER'S BACKGROUND:
 ${bgSnippet}
@@ -4284,31 +4411,25 @@ Headline: ${(profile.headline || '').slice(0, 120)}
 Target roles: ${(profile.target || '').slice(0, 100)}
 Top skills: ${(profile.topSkills || []).slice(0,5).join(', ')}
 
-CONTACT:
-Name: ${c.name}
-Role: ${c.role || ''}
-Company: ${c.company || ''}
-Relationship: ${c.relationship || ''}
-Messages exchanged (LinkedIn history): ${scored.msgCount}
-Warmth: ${scored.warmthTier} · Grade ${scored.grade}
-${interactionContext}
+${contactBlock}
 TARGET ROLE: ${roleHint || 'a suitable role at ' + (c.company || 'their company')}
 ${isUrl(roleHint) ? `JOB LINK: ${roleHint}` : ''}
 ${jdSnippet ? `JOB DESCRIPTION:\n${jdSnippet}` : ''}
 
-TONE: ${tone.tone}
-OPENING: ${tone.opening}
+${toneBlock}
 
 RULES:
 - Under 130 words total
 - 3–4 short paragraphs
-- Do NOT use: "hope this message finds you well", "I am passionate about", "synergy", "leverage", "circle back", "reach out", "I came across your profile"
+${commonDontList}
+- Do NOT use: "I am passionate about"
 - Do NOT start with "Hi [name], I hope..."
 - If a job link is provided, include it naturally in the message
 - If JD provided, reference 1–2 specific requirements
 - End with a no-pressure close
 ${interactionRules}
 - Output ONLY the message text — no subject line, no preamble`;
+  }
 
   try {
     const msg = await callAI(prompt, 400);
