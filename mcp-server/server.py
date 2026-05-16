@@ -173,37 +173,119 @@ def _message_typing_steps(message: str) -> str:
     return "\n".join(steps)
 
 
+# ─── Seniority detection ─────────────────────────────────────────────────────
+
+def _get_seniority(position: str) -> int:
+    """
+    Infer seniority level from a job title string.
+
+    Returns an integer 1–5:
+      1 = IC / PM / Associate PM          → warm, conversational
+      2 = Senior PM / Senior IC           → professional, peer tone
+      3 = Staff / Principal / Lead PM     → focused, peer-to-senior
+      4 = Group PM / Director / Head of   → crisp, respectful, specific
+      5 = VP / CPO / C-suite              → ultra-concise, no filler, single ask
+    """
+    if not position:
+        return 1
+    p = position.lower()
+
+    # Level 5 — VP and above
+    if any(k in p for k in ["vp ", "vice president", "chief product", " cpo", "svp", "evp",
+                             "c-suite", "president", "chief of product"]):
+        return 5
+
+    # Level 4 — Director / Head of / Group PM
+    if any(k in p for k in ["director", "head of product", "head of pm", "group product",
+                             "group pm", "gpm", "senior director"]):
+        return 4
+
+    # Level 3 — Staff / Principal / Lead
+    if any(k in p for k in ["staff product", "staff pm", "principal product", "principal pm",
+                             "lead product", "lead pm", "product lead"]):
+        return 3
+
+    # Level 2 — Senior PM
+    if any(k in p for k in ["senior product", "senior pm", "sr. product", "sr product"]):
+        return 2
+
+    # Level 1 — PM / Associate / APM / everything else
+    return 1
+
+
+def _seniority_label(level: int) -> str:
+    return {1: "PM", 2: "Senior PM", 3: "Staff/Lead PM",
+            4: "Director/Head", 5: "VP/C-suite"}.get(level, "PM")
+
+
+def _seniority_tone_note(level: int) -> str:
+    """Return a tone instruction string for inclusion in AI system prompts."""
+    notes = {
+        1: ("Write in a warm, conversational tone. 4-5 lines is fine. "
+            "An informal ask like 'Would you be open to a quick chat?' works well."),
+        2: ("Write in a professional, peer-to-peer tone. Keep it to 4 lines. "
+            "State your purpose clearly and make a direct but friendly ask."),
+        3: ("Write in a focused, peer-to-senior tone. 3-4 lines maximum. "
+            "Lead with a specific reason for reaching out. No filler phrases."),
+        4: ("Write in a crisp, respectful tone. 3 lines maximum. "
+            "One sharp value prop, one direct ask. Remove all filler and pleasantries. "
+            "They are busy — get to the point immediately."),
+        5: ("Write in an ultra-concise, executive tone. 2-3 sentences maximum — no exceptions. "
+            "Single specific ask. Zero filler. Every word must earn its place. "
+            "Do not start with 'I hope' or 'I came across your profile'. Start with the point."),
+    }
+    return notes.get(level, notes[1])
+
+
 # ─── Message drafting ─────────────────────────────────────────────────────────
 
 def _draft_message(contact: dict, profile: dict, context: str = "") -> str:
     """
-    Generate a warmth-appropriate draft outreach message.
-    Uses the same 7-tier warmth model as WarmPath itself.
+    Generate a warmth-appropriate, seniority-aware draft outreach message.
+    Adapts on two axes:
+      - Warmth tier (7 levels: recommender → cold)
+      - Contact seniority (5 levels: PM → VP/C-suite)
+    Higher seniority → more formal, shorter, sharper single ask.
     """
     first    = (contact.get("name") or "there").split()[0]
     company  = contact.get("company") or "your company"
     tier     = contact.get("warmthTier") or "cold"
+    position = contact.get("position") or contact.get("role") or ""
     target   = (profile.get("target") or "a senior role").split(",")[0].strip()
     my_name  = profile.get("name") or ""
     my_level = profile.get("currentLevel") or "senior professional"
     goal     = profile.get("primaryGoal") or "Job Search"
 
-    # context overrides the default role keyword
     role_ref = context.strip() if context.strip() else target
+    seniority = _get_seniority(position)
 
     # ── Recruiter mode ────────────────────────────────────────────────────────
     if goal == "Recruiting":
         role_part = f" for a {role_ref} role" if role_ref else ""
+        if seniority >= 4:
+            return (
+                f"Hi {first},\n\n"
+                f"I'm building out a team{role_part}. Given your vantage point at {company}, "
+                f"I'd value your perspective on the right profile.\n\n"
+                f"15 minutes at your convenience?"
+            )
         return (
             f"Hi {first},\n\n"
             f"I'm building out a team{role_part} and you came to mind — "
-            f"your network and perspective would be invaluable as I look for the right people.\n\n"
+            f"your network and perspective would be invaluable.\n\n"
             f"Would you be open to a quick chat? Happy to work around your schedule."
         )
 
     # ── Advisory / Consulting mode ────────────────────────────────────────────
     if goal == "Advisory/Consulting":
         domain = role_ref or my_level
+        if seniority >= 4:
+            return (
+                f"Hi {first},\n\n"
+                f"I've been advising on {domain} and {company}'s direction is relevant to some of that work. "
+                f"Worth a brief conversation?\n\n"
+                f"{my_name}"
+            )
         return (
             f"Hi {first},\n\n"
             f"Good to stay connected. I've been advising companies on {domain} lately "
@@ -214,6 +296,13 @@ def _draft_message(contact: dict, profile: dict, context: str = "") -> str:
 
     # ── Pure networking mode ──────────────────────────────────────────────────
     if goal == "Networking":
+        if seniority >= 4:
+            return (
+                f"Hi {first},\n\n"
+                f"I've been following {company}'s work closely. Would love to connect briefly "
+                f"and exchange perspectives — no specific agenda.\n\n"
+                f"{my_name}"
+            )
         return (
             f"Hi {first},\n\n"
             f"Hope things are going well at {company}! "
@@ -223,7 +312,105 @@ def _draft_message(contact: dict, profile: dict, context: str = "") -> str:
             f"{my_name}"
         )
 
-    # ── Job Search (default) — warmth-tier templates ──────────────────────────
+    # ── Job Search — warmth-tier × seniority templates ────────────────────────
+    # Seniority 4-5: Director / VP — crisp and concise
+    if seniority >= 4:
+        templates_senior = {
+            "recommender": (
+                f"Hi {first},\n\n"
+                f"Really appreciate the recommendation — meant a lot.\n\n"
+                f"I'm targeting {role_ref} roles and {company} is at the top of my list. "
+                f"Would you be open to a brief call?"
+            ),
+            "close-colleague": (
+                f"Hi {first},\n\n"
+                f"I'm actively looking at {role_ref} roles — {company} is high on my list. "
+                f"Any open positions or the right person to speak with?\n\n"
+                f"Appreciate any steer."
+            ),
+            "colleague": (
+                f"Hi {first},\n\n"
+                f"I'm exploring {role_ref} opportunities and {company} stands out. "
+                f"Would you have 15 minutes to share your perspective on the team?\n\n"
+                f"Happy to work around your schedule."
+            ),
+            "active-contact": (
+                f"Hi {first},\n\n"
+                f"Following up — I'm actively pursuing {role_ref} roles and {company} is a top choice. "
+                f"Any visibility on openings or the right contact?\n\n"
+                f"Thank you."
+            ),
+            "known": (
+                f"Hi {first},\n\n"
+                f"I'm {my_name}, a {my_level} — we connected previously. "
+                f"I'm targeting {role_ref} roles at {company} and would value 15 minutes of your time.\n\n"
+                f"Would that be possible?"
+            ),
+            "warm-unknown": (
+                f"Hi {first},\n\n"
+                f"I'm a {my_level} targeting {role_ref} roles — {company} is a strong fit. "
+                f"Would you be open to a 15-minute conversation?\n\n"
+                f"I'll keep it brief and focused."
+            ),
+            "cold": (
+                f"Hi {first},\n\n"
+                f"I'm {my_name}, a {my_level}. {company}'s work is directly relevant to my background "
+                f"and I'm exploring {role_ref} opportunities.\n\n"
+                f"Would 15 minutes be possible?"
+            ),
+        }
+        return templates_senior.get(tier, templates_senior["cold"])
+
+    # Seniority 3: Staff / Principal / Lead — focused, peer-to-senior
+    if seniority == 3:
+        templates_staff = {
+            "recommender": (
+                f"Hi {first},\n\n"
+                f"Thank you for the recommendation — it genuinely meant a lot.\n\n"
+                f"I'm actively targeting {role_ref} roles and {company} is high on my list. "
+                f"Would you be open to a quick call to share your perspective?"
+            ),
+            "close-colleague": (
+                f"Hi {first},\n\n"
+                f"I'm actively exploring {role_ref} roles and {company} is a natural next step. "
+                f"Given our time working together, I'd value your honest take — "
+                f"any open roles or people I should connect with?\n\n"
+                f"Worth a quick catch-up?"
+            ),
+            "colleague": (
+                f"Hi {first},\n\n"
+                f"Great to have stayed in touch. I'm exploring {role_ref} opportunities "
+                f"and {company} stood out.\n\n"
+                f"Would you be open to sharing your perspective on the team? Even 15 minutes would help."
+            ),
+            "active-contact": (
+                f"Hi {first},\n\n"
+                f"Picking up from our last exchange — I'm actively pursuing {role_ref} roles "
+                f"and {company} is high on my list.\n\n"
+                f"Any open positions or someone I should speak with? Appreciate any steer."
+            ),
+            "known": (
+                f"Hi {first},\n\n"
+                f"We connected previously — I'm {my_name}, a {my_level}.\n\n"
+                f"I'm exploring {role_ref} opportunities at {company} and would value "
+                f"a short conversation. No pressure — appreciate your time."
+            ),
+            "warm-unknown": (
+                f"Hi {first},\n\n"
+                f"I've been following {company}'s work and your profile stood out.\n\n"
+                f"I'm a {my_level} exploring {role_ref} roles — would you be open to "
+                f"a 15-minute conversation? Happy to share more context."
+            ),
+            "cold": (
+                f"Hi {first},\n\n"
+                f"I'm {my_name}, a {my_level} exploring {role_ref} opportunities.\n\n"
+                f"Your work at {company} caught my attention. Would 15 minutes be possible "
+                f"to learn more about the team?"
+            ),
+        }
+        return templates_staff.get(tier, templates_staff["cold"])
+
+    # Seniority 1-2: PM / Senior PM — warm, conversational
     templates = {
         "recommender": (
             f"Hi {first},\n\n"
@@ -537,9 +724,12 @@ def draft_outreach_message(name: str, context: str = "") -> str:
             f"to reference your previous conversation."
         )
 
+    seniority     = _get_seniority(c.get("position") or c.get("role") or "")
+    seniority_lbl = _seniority_label(seniority)
+
     lines = [
         f"### Draft message for {c.get('name')}",
-        f"*{_grade_label(c.get('grade'))} · {tier} · Goal: {goal}*\n",
+        f"*{_grade_label(c.get('grade'))} · {tier} · Goal: {goal} · Seniority: {seniority_lbl}*\n",
         "---",
         "",
         draft,
