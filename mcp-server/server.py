@@ -119,6 +119,39 @@ def _make_interaction_id() -> str:
     return secrets.token_hex(5) + secrets.token_urlsafe(3)[:3]
 
 
+def _message_typing_steps(message: str) -> str:
+    """
+    Convert a message into browser-automation typing instructions.
+
+    LinkedIn's compose box sends on bare Enter ('Press Enter to Send' mode).
+    To keep a multi-line message as ONE send, every line break must be
+    inserted with Shift+Enter, not Enter.
+
+    Returns a numbered list of steps — type each segment, press Shift+Enter
+    between segments — so Claude Desktop knows exactly what keys to press.
+
+    IMPORTANT FOR BROWSER AUTOMATION:
+    - NEVER use the `type` action with newline (\\n) characters in LinkedIn.
+    - ALWAYS split the message at \\n boundaries and press Shift+Enter between them.
+    - Or use Cmd+V (paste) if the message is already on the clipboard — pasting
+      respects line breaks without triggering Send.
+    """
+    segments = message.split("\n")
+    steps: list[str] = []
+    step_num = 1
+    for i, seg in enumerate(segments):
+        if seg.strip():
+            steps.append(f"  {step_num}. Type: {seg}")
+            step_num += 1
+        if i < len(segments) - 1:
+            steps.append(f"  {step_num}. Press: Shift+Enter  ← NOT plain Enter")
+            step_num += 1
+    steps.append(
+        f"  {step_num}. When the full message looks correct, press Enter (or click Send) ONCE to send."
+    )
+    return "\n".join(steps)
+
+
 # ─── Message drafting ─────────────────────────────────────────────────────────
 
 def _draft_message(contact: dict, profile: dict, context: str = "") -> str:
@@ -1090,15 +1123,17 @@ def copy_message_to_clipboard(name: str, context: str = "") -> str:
         copied = False
 
     clip_status = (
-        "✅ **Message copied to clipboard** — just paste it (Cmd+V) into LinkedIn.\n\n"
+        "✅ **Message copied to clipboard.**"
         if copied else
-        "⚠️ Clipboard copy failed — copy the message below manually.\n\n"
+        "⚠️ Clipboard copy failed — copy the message below manually."
     )
 
+    typing_steps = _message_typing_steps(message)
+
     lines = [
-        f"{clip_status}",
         f"**To:** {contact.get('name')} @ {contact.get('company') or '—'}",
         f"**Warmth:** {_grade_label(contact.get('grade'))} · {contact.get('warmthTier') or '—'}",
+        clip_status,
         "",
         "---",
         "",
@@ -1106,7 +1141,15 @@ def copy_message_to_clipboard(name: str, context: str = "") -> str:
         "",
         "---",
         "",
-        "*After sending: tell me `log message sent to {name}` and I'll record it.*",
+        "**⚠️ Browser automation note — avoid splitting the message:**",
+        "LinkedIn sends on bare Enter. Use ONE of these approaches:",
+        "",
+        "**Paste (recommended):** Cmd+V into the compose box — preserves all line breaks.",
+        "",
+        "**Type with Shift+Enter (if paste unavailable):**",
+        typing_steps,
+        "",
+        f"*After sending: tell me `log message sent to {contact.get('name')}` and I'll record it.*",
     ]
     return "\n".join(lines)
 
@@ -1251,10 +1294,12 @@ def send_outreach(name: str, context: str = "", confirm: bool = False) -> str:
         f"⚠️ Could not open browser — visit LinkedIn manually."
     )
     clip_line = (
-        "📋 **Message copied to clipboard** — paste with Cmd+V."
+        "📋 **Message copied to clipboard.**"
         if copied else
         "⚠️ Clipboard copy failed — copy the message below manually."
     )
+
+    typing_steps = _message_typing_steps(message)
 
     lines = [
         f"## Outreach to {cname}",
@@ -1270,12 +1315,20 @@ def send_outreach(name: str, context: str = "", confirm: bool = False) -> str:
         "",
         "---",
         "",
-        "**Ready?**",
-        f"1. On LinkedIn, click **Message** on {cname}'s profile",
-        "2. Paste the message (Cmd+V) — edit as needed",
-        "3. Click **Send**",
-        f"4. Come back and say: *\"sent\"* or *\"confirm send_outreach {cname}\"*",
-        "   and I'll log it in WarmPath automatically.",
+        "**To insert this message in LinkedIn WITHOUT splitting it:**",
+        "",
+        "**Option A — Paste (recommended):**",
+        f"  1. Click the **Message** button on {cname}'s profile",
+        "  2. Click the compose box",
+        "  3. Press **Cmd+V** (Mac) / **Ctrl+V** (Windows) to paste",
+        "  4. Review, then click **Send**",
+        "",
+        "**Option B — Type with Shift+Enter (for browser automation):**",
+        "  ⚠️ Do NOT use bare Enter — LinkedIn will send immediately on each line break.",
+        "",
+        typing_steps,
+        "",
+        f"When sent, say *\"sent\"* and I'll log it in WarmPath.",
     ]
     return "\n".join(lines)
 
