@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """
 WarmPath MCP Server
-Exposes your LinkedIn network data to Claude Desktop via 12 tools.
+Exposes your LinkedIn network data to Claude Desktop via 16 tools.
 
 Read tools:  score_connection · find_warm_connections_at_company ·
              draft_outreach_message · list_connections · get_todays_plan ·
              get_followup_list · get_weekly_summary · open_linkedin_profile ·
              copy_message_to_clipboard
 Write tools: log_message_sent · log_reply
+Settings:    set_ex_companies
+Job search:  find_open_role · prepare_resume_response
 Layer 2:     send_outreach  (draft + open LinkedIn + clipboard + log in one step)
+Daily:       morning_briefing  (plan + follow-ups + LinkedIn inbox check)
 
 Data source: warmpath_data.json (or warmpath-backup-*.json) in the parent directory.
 Export it from WarmPath → Setup → Settings → Backup → Download, then rename it
@@ -235,6 +238,54 @@ def _seniority_tone_note(level: int) -> str:
             "Do not start with 'I hope' or 'I came across your profile'. Start with the point."),
     }
     return notes.get(level, notes[1])
+
+
+# ─── Careers URL map ─────────────────────────────────────────────────────────
+
+CAREERS_URLS: dict[str, str] = {
+    "google":       "https://careers.google.com/jobs/results/",
+    "microsoft":    "https://jobs.careers.microsoft.com/global/en/search",
+    "amazon":       "https://www.amazon.jobs/en/search",
+    "meta":         "https://www.metacareers.com/jobs",
+    "apple":        "https://jobs.apple.com/en-us/search",
+    "netflix":      "https://jobs.netflix.com/search",
+    "stripe":       "https://stripe.com/jobs/search",
+    "airbnb":       "https://careers.airbnb.com/",
+    "uber":         "https://www.uber.com/us/en/careers/list/",
+    "linkedin":     "https://careers.linkedin.com/",
+    "salesforce":   "https://salesforce.wd12.myworkdayjobs.com/Salesforce/",
+    "adobe":        "https://careers.adobe.com/us/en/search-results",
+    "atlassian":    "https://www.atlassian.com/company/careers/all-jobs",
+    "spotify":      "https://www.lifeatspotify.com/jobs",
+    "razorpay":     "https://razorpay.com/jobs/",
+    "zoho":         "https://careers.zoho.com/",
+    "freshworks":   "https://careers.freshworks.com/",
+    "swiggy":       "https://careers.swiggy.com/",
+    "zomato":       "https://www.zomato.com/careers",
+    "flipkart":     "https://www.flipkartcareers.com/#!/joblist",
+    "paytm":        "https://jobs.paytm.com/",
+    "phonepe":      "https://careers.phonepe.com/",
+    "meesho":       "https://meesho.io/jobs",
+    "cred":         "https://careers.cred.club/",
+    "groww":        "https://groww.in/careers",
+    "capital one":  "https://www.capitalonecareers.com/",
+    "thoughtworks": "https://www.thoughtworks.com/careers/",
+    "chargebee":    "https://www.chargebee.com/careers/",
+    "notion":       "https://www.notion.so/careers",
+    "anthropic":    "https://www.anthropic.com/careers",
+}
+
+
+def _careers_url(company: str) -> tuple[str | None, str | None]:
+    """
+    Return (matched_key, careers_url) for a company, or (None, None).
+    Fuzzy: 'Capital One Financial' matches key 'capital one'.
+    """
+    co = company.lower()
+    for key, url in CAREERS_URLS.items():
+        if key in co or co in key:
+            return key, url
+    return None, None
 
 
 # ─── Message drafting ─────────────────────────────────────────────────────────
@@ -1431,6 +1482,348 @@ def set_ex_companies(companies: str) -> str:
         f"To update the list, call `set_ex_companies` again with the full new list.\n"
         f"To clear it, call `set_ex_companies` with an empty string."
     )
+
+
+# ─── Job search tools ────────────────────────────────────────────────────────
+
+@mcp.tool()
+def find_open_role(company: str, role_keyword: str = "") -> str:
+    """
+    Find open roles at a company that match your target role.
+    Opens the company's careers page in your browser and returns a
+    role-mention line you can weave into your outreach message.
+
+    Args:
+        company:      Company name (e.g. "Zoho", "Capital One").
+        role_keyword: Optional keyword to narrow the search (e.g. "Staff PM").
+                      Defaults to your profile's target role.
+    """
+    data    = load_data()
+    profile = data["profile"]
+    target  = role_keyword.strip() or (profile.get("target") or "Product Manager").split(",")[0].strip()
+
+    _, careers_url = _careers_url(company)
+    co_enc = company.replace(" ", "%20")
+    kw_enc = target.replace(" ", "%20")
+
+    linkedin_jobs_url = (
+        f"https://www.linkedin.com/jobs/search/"
+        f"?keywords={kw_enc}&f_C=&location=&f_TPR=r2592000"  # last 30 days
+        f"&f_WT=2"  # remote-friendly; user can remove
+    )
+    # More targeted: search LinkedIn Jobs for this company + role
+    linkedin_co_url = (
+        f"https://www.linkedin.com/jobs/search/"
+        f"?keywords={kw_enc}+{co_enc}"
+    )
+
+    opened_url = careers_url or linkedin_co_url
+    browser_note = ""
+    try:
+        webbrowser.open(opened_url)
+        browser_note = f"🌐 Opened: {opened_url}"
+    except Exception:
+        browser_note = f"Could not open browser. Visit: {opened_url}"
+
+    lines = [
+        f'## Open roles at {company} matching "{target}"',
+        "",
+        browser_note,
+        "",
+        "**Links to check:**",
+    ]
+    if careers_url:
+        lines.append(f"- 🏢 **Direct careers page:** {careers_url}")
+    lines += [
+        f"- 🔗 **LinkedIn Jobs ({company} + {target}):** {linkedin_co_url}",
+        "",
+        "---",
+        "",
+        "**Once you find a specific role, use this line in your message:**",
+        f'> "I came across the {target} opening at {company} — it lines up closely with what I\'ve been building."',
+        "",
+        "Or pass the role title + URL to `draft_outreach_message` as the `context` argument:",
+        f'> `draft_outreach_message("{company} contact name", "Staff PM role — <job URL>")`',
+        "",
+        "The message will automatically reference the role and keep the tone appropriate to their seniority.",
+    ]
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def prepare_resume_response(name: str, role_title: str = "", role_url: str = "") -> str:
+    """
+    Draft a follow-up message for a contact who has asked for your resume.
+    Call this when someone replies asking for your CV / resume.
+
+    Args:
+        name:       Full or partial name of the contact who asked.
+        role_title: The specific role they mentioned (optional but recommended).
+        role_url:   URL to the job posting (optional).
+    """
+    data    = load_data()
+    contact = _find_contact(data["contacts"], name)
+
+    if not contact:
+        return f'No contact found matching "{name}".'
+
+    profile   = data["profile"]
+    first     = (contact.get("name") or "there").split()[0]
+    company   = contact.get("company") or "your company"
+    my_name   = profile.get("name") or ""
+    my_level  = profile.get("currentLevel") or "senior professional"
+    target    = (profile.get("target") or "PM").split(",")[0].strip()
+    seniority = _get_seniority(contact.get("position") or contact.get("role") or "")
+
+    role_line = ""
+    if role_title and role_url:
+        role_line = f" for the {role_title} role ({role_url})"
+    elif role_title:
+        role_line = f" for the {role_title} role"
+    elif role_url:
+        role_line = f" for the role ({role_url})"
+
+    # Concise for senior contacts, warmer for peers
+    if seniority >= 4:
+        draft = (
+            f"Hi {first},\n\n"
+            f"Thanks for getting back to me. Sharing my resume{role_line} — "
+            f"happy to answer any questions.\n\n"
+            f"[Attach resume here]\n\n"
+            f"{my_name}"
+        )
+    else:
+        draft = (
+            f"Hi {first},\n\n"
+            f"Really appreciate you getting back to me!\n\n"
+            f"Please find my resume attached{role_line}. "
+            f"I've been focusing on {target} roles and {company} is genuinely high on my list.\n\n"
+            f"Happy to jump on a call if that's easier — whatever works for you.\n\n"
+            f"[Attach resume here]\n\n"
+            f"{my_name}"
+        )
+
+    # Log this as a reply received
+    contacts = data["contacts"]
+    idx = next(
+        (i for i, c in enumerate(contacts)
+         if c.get("name", "").lower() == (contact.get("name") or "").lower()),
+        None,
+    )
+    if idx is not None:
+        today = datetime.now().strftime("%Y-%m-%d")
+        interaction = {
+            "id":       _make_interaction_id(),
+            "date":     today,
+            "type":     "reply-received",
+            "source":   "linkedin-inbox",
+            "response": "asked for resume",
+            "note":     f"Asked for resume{role_line}. Response drafted.",
+        }
+        if "interactions" not in contacts[idx]:
+            contacts[idx]["interactions"] = []
+        contacts[idx]["interactions"].append(interaction)
+        contacts[idx]["status"] = "Replied"
+        save_contacts(contacts)
+
+    typing_steps = _message_typing_steps(draft)
+
+    return "\n".join([
+        f"## Resume response for {contact.get('name')} @ {company}",
+        f"*Seniority: {_seniority_label(seniority)} · Status updated to: Replied*",
+        "",
+        "---",
+        "",
+        draft,
+        "",
+        "---",
+        "",
+        "**⚠️ Remember:** Attach your resume PDF before sending.",
+        "",
+        "**To send without splitting (LinkedIn compose box):**",
+        "Paste with Cmd+V, or type using Shift+Enter between lines:",
+        "",
+        typing_steps,
+    ])
+
+
+@mcp.tool()
+def morning_briefing() -> str:
+    """
+    Start-of-day briefing. Run this once each morning.
+
+    Returns:
+      1. Today's outreach plan (who to message)
+      2. Follow-up list (who hasn't replied and needs a nudge)
+      3. LinkedIn inbox check instructions — Claude will open your LinkedIn
+         inbox, read unread messages, and flag anyone who asked for a resume
+         so a response can be drafted immediately.
+
+    The inbox check only runs once per day (tracked by date).
+    """
+    data     = load_data()
+    contacts = data["contacts"]
+    profile  = data["profile"]
+    targets  = data["targets"]
+    today    = datetime.now(timezone.utc).date()
+    today_str = today.strftime("%Y-%m-%d")
+
+    # Check if inbox was already read today
+    last_inbox_check = profile.get("_lastInboxCheck", "")
+    inbox_already_done = last_inbox_check == today_str
+
+    # ── Today's plan (top 3 for briefing — use get_todays_plan for full list) ──
+    def _norm(s: str) -> str:
+        return s.strip().lower()
+    ex_set = set(_norm(x) for x in (profile.get("exCompanies") or "").split(",") if x.strip())
+
+    def _is_ex(company: str) -> bool:
+        co = (company or "").lower()
+        return any(ex and ex in co for ex in ex_set)
+
+    plan_contacts = []
+    for c in contacts:
+        if c.get("grade") not in ("A", "B"):
+            continue
+        if (c.get("status") or "") in ("Replied", "Met", "Referred me"):
+            continue
+        if _is_ex(c.get("company") or ""):
+            continue
+        last_raw = c.get("lastContacted") or c.get("_lastSentDate") or ""
+        days_since = None
+        if last_raw:
+            try:
+                last_dt = datetime.fromisoformat(str(last_raw).replace("Z", "+00:00"))
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=timezone.utc)
+                days_since = (datetime.now(timezone.utc) - last_dt).days
+            except Exception:
+                pass
+        is_target = any(t in (c.get("company") or "").lower() for t in targets)
+        if days_since is not None and days_since < 14 and not is_target:
+            continue
+        priority = 0
+        if c.get("grade") == "A":               priority += 30
+        if is_target:                            priority += 25
+        if not (c.get("lastContacted") or c.get("_lastSentDate")): priority += 20
+        plan_contacts.append((priority, c))
+
+    plan_contacts.sort(key=lambda x: -x[0])
+    top3 = plan_contacts[:3]
+
+    # ── Follow-ups overdue ─────────────────────────────────────────────────────
+    followups = []
+    for c in contacts:
+        status = (c.get("status") or "").lower()
+        if status not in ("messaged", "message sent"):
+            continue
+        last_raw = c.get("_lastSentDate") or c.get("lastContacted") or ""
+        if not last_raw:
+            continue
+        try:
+            last_dt = datetime.fromisoformat(str(last_raw).replace("Z", "+00:00"))
+            if last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=timezone.utc)
+            days = (datetime.now(timezone.utc) - last_dt).days
+            if days >= 5:
+                followups.append((days, c))
+        except Exception:
+            pass
+    followups.sort(key=lambda x: -x[0])
+
+    # ── Contacts messaged in last 30 days (for inbox matching) ────────────────
+    messaged_recently = []
+    for c in contacts:
+        last_raw = c.get("_lastSentDate") or c.get("lastContacted") or ""
+        if not last_raw:
+            continue
+        try:
+            last_dt = datetime.fromisoformat(str(last_raw).replace("Z", "+00:00"))
+            if last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=timezone.utc)
+            days = (datetime.now(timezone.utc) - last_dt).days
+            if days <= 30:
+                messaged_recently.append(c.get("name", ""))
+        except Exception:
+            pass
+
+    # Mark inbox check as done for today
+    if not inbox_already_done:
+        save_profile_field("_lastInboxCheck", today_str)
+
+    # ── Build output ──────────────────────────────────────────────────────────
+    lines = [
+        f"# ☀️ Morning briefing — {today.strftime('%A, %d %b %Y')}",
+        "",
+    ]
+
+    # Today's plan
+    lines += ["## 📋 Top contacts to message today"]
+    if top3:
+        for i, (_, c) in enumerate(top3, 1):
+            company = c.get("company") or "—"
+            role    = c.get("position") or c.get("role") or "—"
+            lines.append(f"{i}. **{c.get('name')}** — {role} @ {company} · {_grade_label(c.get('grade'))}")
+    else:
+        lines.append("✅ No urgent outreach today — great work keeping up!")
+    lines += ["", f"*Full list: ask `get_todays_plan`*", ""]
+
+    # Follow-ups
+    lines += ["## 🔔 Overdue follow-ups"]
+    if followups:
+        for days, c in followups[:3]:
+            emoji = "🔴" if days >= 14 else "🟡"
+            lines.append(f"{emoji} **{c.get('name')}** @ {c.get('company') or '—'} — {days} days silent")
+    else:
+        lines.append("✅ No overdue follow-ups.")
+    lines += [""]
+
+    # LinkedIn inbox
+    lines += ["## 📬 LinkedIn inbox check"]
+    if inbox_already_done:
+        lines += [
+            "✅ Already checked today.",
+            "",
+            "*To force a re-check, ask: \"check my LinkedIn inbox\".*",
+        ]
+    else:
+        resume_keywords = [
+            "resume", "cv", "curriculum vitae", "portfolio",
+            "share your profile", "send your details", "apply",
+        ]
+        lines += [
+            "**Not checked yet today.** Here's what to do:",
+            "",
+            "1. I'll open your LinkedIn inbox now",
+            "2. Read the unread messages from these contacts (messaged in last 30 days):",
+            "",
+        ]
+        for n in (messaged_recently[:10] if messaged_recently else ["(none yet)"]):
+            lines.append(f"   • {n}")
+        lines += [
+            "",
+            "3. Look for any message containing these keywords:",
+            f"   {', '.join(resume_keywords)}",
+            "",
+            "4. For each resume request found: call `prepare_resume_response(name)` and I'll draft the reply",
+            "",
+            "**Opening LinkedIn inbox now…**",
+            "_(Claude will navigate to https://www.linkedin.com/messaging/ and read unread messages)_",
+        ]
+
+        # Open LinkedIn inbox in browser
+        try:
+            webbrowser.open("https://www.linkedin.com/messaging/")
+        except Exception:
+            pass
+
+    lines += [
+        "",
+        "---",
+        f"*{len(contacts)} contacts in network · {len(messaged_recently)} messaged in last 30 days*",
+    ]
+
+    return "\n".join(lines)
 
 
 # ─── Layer 2: send_outreach ───────────────────────────────────────────────────
