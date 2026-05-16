@@ -315,8 +315,43 @@ warmpath/
 
 ---
 
+## Claude Desktop integration (MCP server)
+
+WarmPath ships with an MCP server that connects your network data directly to **Claude Desktop** — so you can ask Claude things like *"Who should I message today?"* and get real answers from your actual contacts.
+
+### What Claude can do with your network
+
+| Category | Tools | What they do |
+|---|---|---|
+| **Read** | `score_connection`, `find_warm_connections_at_company`, `draft_outreach_message`, `list_connections` | Query contacts, scores, history |
+| **Plan** | `get_todays_plan`, `get_followup_list`, `get_weekly_summary`, `morning_briefing` | Daily outreach plan, follow-ups, inbox check |
+| **Act** | `open_linkedin_profile`, `copy_message_to_clipboard`, `send_outreach`, `find_open_role` | Open LinkedIn, copy drafts, full send pipeline |
+| **Log** | `log_message_sent`, `log_reply`, `prepare_resume_response` | Write back to WarmPath — syncs automatically |
+| **Settings** | `set_ex_companies` | Exclude ex-employers from outreach suggestions |
+
+### Key behaviours
+- **Seniority-aware messages** — tone and length adapt automatically: VP/C-suite get 2–3 sentence messages; PMs get warmer, conversational drafts
+- **Ex-company exclusion** — tell Claude your previous employers once; they're filtered from all future plans
+- **Goal-aware framing** — Job Search, Recruiting, Advisory, and Networking each use different system prompts and CTAs
+- **Auto-sync** — when Claude logs a sent message, WarmPath picks it up automatically on next load (no manual backup/restore needed)
+- **Morning briefing** — one command opens your daily plan, overdue follow-ups, and LinkedIn inbox; flags resume requests and drafts replies
+
+### Setup
+```
+cd /path/to/WarmPath
+python3 mcp-server/install.py
+```
+Full instructions: [`mcp-server/README.md`](mcp-server/README.md)
+
+### Using WarmPath without Claude Desktop
+The app works completely standalone — open `index.html` in any browser (use `launch.command` on Mac or `launch.bat` on Windows for best results), or visit the hosted version at **https://jaganmohankb-git.github.io/warmpath/**. The MCP server is optional.
+
+---
+
 ## Roadmap
 
+- [ ] Tailored resume generation per job description (Claude-assisted)
+- [ ] Log job applications from MCP (`log_job_application` tool)
 - [ ] Delta import (only process new connections since last import)
 - [ ] Export interaction log as CSV
 - [ ] Contact location matching for post-job-search prioritisation
@@ -330,6 +365,7 @@ warmpath/
 - Vanilla HTML, CSS, JavaScript — no framework, no build step
 - [JSZip](https://stuk.github.io/jszip/) for LinkedIn archive zip extraction
 - Anthropic / OpenAI / Ollama APIs for message generation and job matching (optional)
+- [MCP (Model Context Protocol)](https://modelcontextprotocol.io) for Claude Desktop integration
 
 ---
 
