@@ -95,6 +95,27 @@ def load_data() -> dict:
 
 # ─── Data writing ────────────────────────────────────────────────────────────
 
+def save_profile_field(key: str, value) -> None:
+    """
+    Write a single field into the wp_profile JSON stored in warmpath_data.json.
+    """
+    path = _find_data_file()
+    with open(path, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+
+    profile_raw = raw.get("wp_profile", "{}")
+    try:
+        profile = json.loads(profile_raw) if isinstance(profile_raw, str) else dict(profile_raw)
+    except Exception:
+        profile = {}
+
+    profile[key] = value
+    raw["wp_profile"] = json.dumps(profile, ensure_ascii=False)
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(raw, f, ensure_ascii=False, indent=2)
+
+
 def save_contacts(contacts: list) -> None:
     """
     Write an updated contacts list back to warmpath_data.json,
@@ -795,29 +816,59 @@ def log_reply(name: str, response: str = "replied", note: str = "") -> str:
 
 
 @mcp.tool()
-def get_todays_plan(max_contacts: int = 5) -> str:
+def get_todays_plan(max_contacts: int = 5, exclude_companies: str = "") -> str:
     """
     Generate today's outreach plan — who to message today and why.
     Prioritises Grade A contacts not yet contacted, contacts at target companies,
     and warm contacts who haven't been reached in 90+ days.
 
+    Ex-companies stored in your profile under 'exCompanies' (comma-separated)
+    are automatically excluded. You can also pass additional companies to skip
+    via exclude_companies.
+
     Args:
-        max_contacts: How many contacts to suggest today (default 5).
+        max_contacts:      How many contacts to suggest today (default 5).
+        exclude_companies: Extra comma-separated company names to skip today
+                           (e.g. "Stripe, Atlassian"). These are merged with
+                           any exCompanies stored in your profile.
     """
     data     = load_data()
     contacts = data["contacts"]
     targets  = data["targets"]
+    profile  = data["profile"]
     today    = datetime.now(timezone.utc).date()
 
+    # Build the ex-companies exclusion set from profile + override param
+    def _norm(s: str) -> str:
+        return s.strip().lower()
+
+    profile_ex  = [_norm(x) for x in (profile.get("exCompanies") or "").split(",") if x.strip()]
+    param_ex    = [_norm(x) for x in exclude_companies.split(",") if x.strip()]
+    ex_companies = set(profile_ex + param_ex)  # e.g. {"freshworks", "thoughtworks", "athena health"}
+
+    def _is_ex_company(company: str) -> bool:
+        """Fuzzy match: 'Freshworks | The Company' matches 'freshworks'."""
+        co_lower = (company or "").lower()
+        return any(ex and ex in co_lower for ex in ex_companies)
+
     candidates = []
+    skipped_ex: list[str] = []
+
     for c in contacts:
         grade  = c.get("grade", "C")
         status = c.get("status") or "Not contacted"
         score  = c.get("score") or 0
+        company = c.get("company") or ""
+
         if grade not in ("A", "B"):
             continue
         if status in ("Replied", "Met", "Referred me"):
             continue  # already engaged
+
+        # Skip ex-company contacts silently (track for summary)
+        if _is_ex_company(company):
+            skipped_ex.append(company)
+            continue
 
         last_raw = c.get("lastContacted") or c.get("_lastSentDate") or ""
         days_since = None
@@ -830,7 +881,7 @@ def get_todays_plan(max_contacts: int = 5) -> str:
             except Exception:
                 pass
 
-        is_target = any(t in (c.get("company") or "").lower() for t in targets)
+        is_target = any(t in company.lower() for t in targets)
         is_decay  = days_since is not None and days_since >= 90
 
         # Skip if recently messaged (within 14 days) unless it's a target company
@@ -838,10 +889,10 @@ def get_todays_plan(max_contacts: int = 5) -> str:
             continue
 
         priority = 0
-        if grade == "A":           priority += 30
-        if is_target:              priority += 25
+        if grade == "A":              priority += 30
+        if is_target:                 priority += 25
         if status == "Not contacted": priority += 20
-        if is_decay:               priority += 15
+        if is_decay:                  priority += 15
         priority += min(score // 10, 10)
 
         candidates.append({
@@ -896,6 +947,14 @@ def get_todays_plan(max_contacts: int = 5) -> str:
         "- `copy_message_to_clipboard` — put the draft on your clipboard ready to paste",
         "- `log_message_sent` — record it once you've sent",
     ]
+
+    if ex_companies:
+        skipped_unique = sorted({s for s in skipped_ex if s})
+        lines += [
+            "",
+            f"*🚫 Ex-company contacts excluded: {', '.join(sorted(ex_companies))}*",
+            f"*({len(skipped_ex)} contact(s) skipped. To include them, remove from exCompanies in your profile.)*",
+        ]
     return "\n".join(lines)
 
 
@@ -1152,6 +1211,36 @@ def copy_message_to_clipboard(name: str, context: str = "") -> str:
         f"*After sending: tell me `log message sent to {contact.get('name')}` and I'll record it.*",
     ]
     return "\n".join(lines)
+
+
+# ─── Profile settings tools ──────────────────────────────────────────────────
+
+@mcp.tool()
+def set_ex_companies(companies: str) -> str:
+    """
+    Save a list of your ex-employers so they are automatically excluded
+    from get_todays_plan and other outreach suggestions.
+
+    You can update this list any time — just call this tool again with the
+    full updated list.
+
+    Args:
+        companies: Comma-separated company names, e.g.
+                   "Freshworks, Thoughtworks, Athena Health, TrustRace"
+    """
+    names = [c.strip() for c in companies.split(",") if c.strip()]
+    if not names:
+        return "No company names provided. Pass a comma-separated list, e.g. \"Freshworks, Thoughtworks\"."
+
+    save_profile_field("exCompanies", ", ".join(names))
+
+    return (
+        f"✅ **Ex-companies saved:** {', '.join(names)}\n\n"
+        f"These will be automatically excluded from `get_todays_plan` and "
+        f"outreach suggestions going forward.\n\n"
+        f"To update the list, call `set_ex_companies` again with the full new list.\n"
+        f"To clear it, call `set_ex_companies` with an empty string."
+    )
 
 
 # ─── Layer 2: send_outreach ───────────────────────────────────────────────────
