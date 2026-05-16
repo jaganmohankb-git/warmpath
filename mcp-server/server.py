@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 WarmPath MCP Server
-Exposes your LinkedIn network data to Claude Desktop via 11 tools.
+Exposes your LinkedIn network data to Claude Desktop via 12 tools.
 
 Read tools:  score_connection · find_warm_connections_at_company ·
              draft_outreach_message · list_connections · get_todays_plan ·
              get_followup_list · get_weekly_summary · open_linkedin_profile ·
              copy_message_to_clipboard
 Write tools: log_message_sent · log_reply
+Layer 2:     send_outreach  (draft + open LinkedIn + clipboard + log in one step)
 
 Data source: warmpath_data.json (or warmpath-backup-*.json) in the parent directory.
 Export it from WarmPath → Setup → Settings → Backup → Download, then rename it
@@ -1106,6 +1107,175 @@ def copy_message_to_clipboard(name: str, context: str = "") -> str:
         "---",
         "",
         "*After sending: tell me `log message sent to {name}` and I'll record it.*",
+    ]
+    return "\n".join(lines)
+
+
+# ─── Layer 2: send_outreach ───────────────────────────────────────────────────
+
+@mcp.tool()
+def send_outreach(name: str, context: str = "", confirm: bool = False) -> str:
+    """
+    All-in-one outreach tool: draft → warn → open LinkedIn → copy to clipboard.
+
+    Call this when the user says "send a message to X" or "reach out to X".
+
+    Workflow:
+      1. First call (confirm=False):  draft the message, open LinkedIn, copy to
+         clipboard, and return a preview asking the user to confirm.
+      2. Second call (confirm=True):  log the message as sent in WarmPath and
+         return a confirmation.
+
+    Between the two calls the user pastes the message on LinkedIn and sends it.
+
+    Args:
+        name:    Full or partial name of the contact.
+        context: Optional job title, role URL, or extra context for the message.
+        confirm: Set True after the user has sent the message to log it.
+    """
+    data    = load_data()
+    contact = _find_contact(data["contacts"], name)
+
+    if not contact:
+        return f'No contact found matching "{name}".'
+
+    cname   = contact.get("name", name)
+    company = contact.get("company") or "—"
+    grade   = _grade_label(contact.get("grade"))
+    tier    = contact.get("warmthTier") or "—"
+
+    # ── confirm=True: log it and finish ───────────────────────────────────────
+    if confirm:
+        contacts = data["contacts"]
+        idx = next(
+            (i for i, c in enumerate(contacts)
+             if c.get("name", "").lower() == cname.lower()),
+            None,
+        )
+        if idx is None:
+            return f'Could not find "{cname}" to log.'
+
+        now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        today   = datetime.now().strftime("%Y-%m-%d")
+
+        interaction = {
+            "id":       _make_interaction_id(),
+            "date":     today,
+            "type":     "message",
+            "source":   "claude-desktop",
+            "response": "",
+            "note":     f"Sent via send_outreach (Layer 2). Context: {context}" if context else "Sent via send_outreach (Layer 2).",
+        }
+
+        if "interactions" not in contacts[idx]:
+            contacts[idx]["interactions"] = []
+        contacts[idx]["interactions"].append(interaction)
+
+        contacts[idx]["lastContacted"]  = today
+        contacts[idx]["_lastSentDate"]  = now_iso
+        contacts[idx]["status"]         = "Messaged"
+
+        save_contacts(contacts)
+
+        return (
+            f"✅ **Logged!** Message to {cname} recorded in WarmPath.\n\n"
+            f"**Next step:** If they reply, say *\"log reply from {cname}\"* "
+            f"and I'll update their status and warmth score."
+        )
+
+    # ── confirm=False: draft, open, copy, preview ─────────────────────────────
+    message = _draft_message(contact, data["profile"], context)
+
+    # Warn if already messaged recently
+    last_sent = contact.get("_lastSentDate") or contact.get("lastContacted") or ""
+    already_warned = ""
+    if last_sent:
+        try:
+            sent_dt = datetime.fromisoformat(last_sent.replace("Z", "+00:00"))
+            days_ago = (datetime.now(timezone.utc) - sent_dt).days
+            if days_ago < 14:
+                already_warned = (
+                    f"\n⚠️ **Note:** You messaged {cname} {days_ago} day(s) ago "
+                    f"— double-check before sending again.\n"
+                )
+        except Exception:
+            pass
+
+    # Open LinkedIn profile in browser
+    url      = contact.get("linkedinUrl") or contact.get("profileUrl") or ""
+    opened   = False
+    open_note = ""
+    if url:
+        try:
+            webbrowser.open(url)
+            opened = True
+        except Exception:
+            pass
+    if not opened:
+        search_url = (
+            f"https://www.linkedin.com/search/results/people/"
+            f"?keywords={contact.get('name', name).replace(' ', '%20')}"
+        )
+        try:
+            webbrowser.open(search_url)
+            opened = True
+            open_note = "\n*(Opened LinkedIn search — no direct profile URL stored.)*\n"
+        except Exception:
+            open_note = "\n*(Could not open browser automatically.)*\n"
+
+    # Copy to clipboard
+    copied = False
+    sys_name = platform.system()
+    try:
+        if sys_name == "Darwin":
+            proc = subprocess.run(["pbcopy"], input=message, text=True, timeout=5)
+            copied = proc.returncode == 0
+        elif sys_name == "Windows":
+            proc = subprocess.run(["clip"], input=message, text=True, timeout=5, shell=True)
+            copied = proc.returncode == 0
+        else:
+            for cmd in [["xclip", "-selection", "clipboard"], ["xsel", "--clipboard", "--input"]]:
+                try:
+                    proc = subprocess.run(cmd, input=message, text=True, timeout=5)
+                    if proc.returncode == 0:
+                        copied = True
+                        break
+                except FileNotFoundError:
+                    continue
+    except Exception:
+        pass
+
+    browser_line = (
+        f"🌐 **LinkedIn opened** in your browser.{open_note}"
+        if opened else
+        f"⚠️ Could not open browser — visit LinkedIn manually."
+    )
+    clip_line = (
+        "📋 **Message copied to clipboard** — paste with Cmd+V."
+        if copied else
+        "⚠️ Clipboard copy failed — copy the message below manually."
+    )
+
+    lines = [
+        f"## Outreach to {cname}",
+        "",
+        f"**Company:** {company}  |  **Warmth:** {grade} · {tier}",
+        already_warned,
+        browser_line,
+        clip_line,
+        "",
+        "---",
+        "",
+        message,
+        "",
+        "---",
+        "",
+        "**Ready?**",
+        f"1. On LinkedIn, click **Message** on {cname}'s profile",
+        "2. Paste the message (Cmd+V) — edit as needed",
+        "3. Click **Send**",
+        f"4. Come back and say: *\"sent\"* or *\"confirm send_outreach {cname}\"*",
+        "   and I'll log it in WarmPath automatically.",
     ]
     return "\n".join(lines)
 
