@@ -1,3 +1,6 @@
+# Claude Code internals
+.claude/
+
 # Personal network data — never commit this
 warmpath_data.json
 warmpath-backup-*.json
