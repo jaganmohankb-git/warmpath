@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pip install -r mcp-server/requirements.txt"
+
+[deploy]
+startCommand = "python mcp-server/server.py"
+healthcheckPath = "/"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+
+[[volumes]]
+mountPath = "/data"

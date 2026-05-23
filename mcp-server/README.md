@@ -1,21 +1,23 @@
 # WarmPath MCP Server
 
-Connect your LinkedIn network data directly to Claude Desktop.
-Ask Claude things like _"Who do I know at Stripe?"_ or _"Draft a message to Priya about the PM role"_ — and Claude will answer using your real WarmPath data.
+Connect your LinkedIn network data directly to **Claude Desktop** or **claude.ai** (web).  
+Ask Claude things like _"Who should I message today?"_ or _"Draft a message to Priya about the PM role at Stripe"_ — and Claude answers using your real WarmPath data.
 
 ---
 
 ## What this does
 
-WarmPath already scores and organises your LinkedIn contacts in the browser.
-This MCP server makes that same data available inside **Claude Desktop** as four tools:
+WarmPath already scores and organises your LinkedIn contacts in the browser.  
+This MCP server exposes that data to Claude as **20 tools** across 5 categories:
 
-| Tool | What it does |
-|------|-------------|
-| `score_connection` | Look up any contact — warmth score, grade, interaction history |
-| `find_warm_connections_at_company` | All your contacts at a company, sorted by warmth |
-| `draft_outreach_message` | A personalised draft message, adapted to your relationship warmth and primary goal |
-| `list_connections` | Browse and filter your full network by company, grade, or keyword |
+| Category | Tools |
+|---|---|
+| **Read** | `score_connection`, `find_warm_connections_at_company`, `draft_outreach_message`, `list_connections` |
+| **Plan** | `get_todays_plan`, `get_followup_list`, `get_weekly_summary`, `morning_briefing` |
+| **Act** | `open_linkedin_profile`, `copy_message_to_clipboard`, `send_outreach`, `find_open_role` |
+| **Log** | `log_message_sent`, `log_reply`, `prepare_resume_response` |
+| **Settings** | `set_ex_companies` |
+| **Company Intel** | `list_target_companies`, `get_company_intelligence`, `get_todays_company_priority`, `update_company_score` |
 
 Everything runs **locally on your computer**. No extra accounts, no API keys, no data sent anywhere new.
 

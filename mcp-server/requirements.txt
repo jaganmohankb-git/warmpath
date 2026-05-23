@@ -1,1 +1,9 @@
-mcp>=1.0.0
+mcp==1.27.1
+uvicorn==0.47.0
+starlette==1.0.0
+anyio==4.13.0
+httpx==0.28.1
+httpx-sse==0.4.3
+pydantic==2.13.4
+pydantic-settings==2.14.1
+sse-starlette==3.4.4

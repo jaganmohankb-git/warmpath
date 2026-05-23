@@ -697,6 +697,22 @@ select option { background: var(--surface); }
     transition: padding-right 0.22s cubic-bezier(0.4,0,0.2,1);
   }
 }
+/* ── Company Intelligence ── */
+.ci-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); margin-bottom:10px; overflow:hidden; }
+.ci-card-header { padding:14px 16px; display:flex; align-items:center; gap:12px; }
+.ci-score-circle { width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; flex-shrink:0; }
+.ci-score-green  { background:var(--green-bg); color:var(--green); border:2px solid #b0d9a0; }
+.ci-score-amber  { background:var(--amber-bg); color:var(--amber); border:2px solid #e8c88a; }
+.ci-score-grey   { background:var(--surface2);  color:var(--faint);  border:2px solid var(--border2); }
+.ci-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.ci-bar-label { font-size:12px; color:var(--muted); width:150px; flex-shrink:0; }
+.ci-bar-track { flex:1; height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+.ci-bar-fill { height:100%; border-radius:3px; background:var(--purple); transition:width 0.3s; }
+.ci-bar-val { font-size:12px; font-weight:700; color:var(--text); width:20px; text-align:right; }
+.ci-weight-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.ci-weight-label { font-size:13px; color:var(--text); flex:1; }
+.ci-weight-val { font-size:13px; font-weight:700; color:var(--purple); width:35px; text-align:right; }
+
 /* Sub-tab nav for Setup */
 .sub-tab-nav { display:flex; gap:2px; margin-bottom:20px; border-bottom:2px solid var(--border); }
 .sub-tab-btn { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px;
@@ -748,6 +764,10 @@ select option { background: var(--surface); }
       <span>Applications (<span id="nav-app-count">0</span>)</span>
       <span class="nav-tab-sub">Interview &amp; Close</span>
     </button>
+    <button class="nav-tab" data-tab="companies" onclick="switchTab('companies')">
+      <span>Companies</span>
+      <span class="nav-tab-sub">Intelligence</span>
+    </button>
     <button class="nav-tab" data-tab="setup" onclick="switchTab('setup')">
       <span>Setup</span>
       <span class="nav-tab-sub">Profile &amp; Settings</span>
@@ -773,6 +793,12 @@ select option { background: var(--surface); }
   <div id="tab-applications" class="tab-panel">
     <div class="empty-state">
       <div class="empty-state-icon">📋</div>
+      <div class="empty-state-title">Loading…</div>
+    </div>
+  </div>
+  <div id="tab-companies" class="tab-panel">
+    <div class="empty-state">
+      <div class="empty-state-icon">🏢</div>
       <div class="empty-state-title">Loading…</div>
     </div>
   </div>
@@ -850,6 +876,9 @@ const LS = {
   job_location:'wp_job_location', job_loc_prefs:'wp_job_loc_prefs', last_import:'wp_last_import',
   resume:'wp_resume', custom_targets:'wp_custom_targets',
   company_intel:'wp_company_intel',
+  co_intelligence:'wp_co_intelligence',
+  co_intel_weights:'wp_co_intel_weights',
+  ex_companies:'wp_ex_companies',
   activity_log: 'wp_activity_log',
   view_mode: 'wp_view_mode',
   scoring_config: 'wp_scoring_config',
@@ -1202,10 +1231,23 @@ let state = {
   SKILLS: [],
   TARGET_COS: [],
   COMPANY_INTEL: {},
+  COMPANY_INTELLIGENCE: [],
   ACTIVITY_LOG: [],
   JOBS: [],
   OUTREACH: []
 };
+
+// ─── Company Intelligence seed data ───────────────
+const CI_SEED = [
+  { id:'servicenow', name:'ServiceNow', ai_investment_signal:9, hiring_momentum:8, ecosystem_relevance:9, india_presence:9, notes:'', open_roles:[], referral_status:'None' },
+  { id:'google',     name:'Google',     ai_investment_signal:9, hiring_momentum:7, ecosystem_relevance:9, india_presence:8, notes:'', open_roles:[], referral_status:'None' },
+  { id:'sap',        name:'SAP',        ai_investment_signal:7, hiring_momentum:6, ecosystem_relevance:8, india_presence:7, notes:'', open_roles:[], referral_status:'None' },
+  { id:'chargebee',  name:'Chargebee',  ai_investment_signal:5, hiring_momentum:6, ecosystem_relevance:7, india_presence:9, notes:'', open_roles:[], referral_status:'None' },
+  { id:'athenahealth',name:'athenahealth',ai_investment_signal:5,hiring_momentum:5,ecosystem_relevance:6, india_presence:6, notes:'', open_roles:[], referral_status:'None' },
+];
+
+const CI_DEFAULT_WEIGHTS = { ai_investment:30, hiring_momentum:25, ecosystem_relevance:20, india_presence:15, warmth_score:10 };
+const CI_REFERRAL_STATUSES = ['None','Warm Contact','Active Referral','Applied'];
 
 let activeTab = 'contacts';
 let setupSubTab = 'import';
@@ -1237,6 +1279,7 @@ function switchTab(tab) {
   if (tab === 'contacts') renderContactsTab();
   if (tab === 'jobs') renderJobsTab();
   if (tab === 'applications') renderApplicationsTab();
+  if (tab === 'companies') renderCompaniesTab();
   if (tab === 'setup') renderSetupTab();
 }
 
@@ -2429,6 +2472,30 @@ function renderSetupTab() {
       <button class="btn btn-secondary" style="margin-top:10px" onclick="document.getElementById('custom-template-form').style.display='block'">+ Add custom template</button>
     </div>
 
+    <!-- Exclude from outreach plans -->
+    <div class="setup-section">
+      <div class="setup-section-title">Exclude from outreach plans</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">
+        Companies listed here will be excluded from daily plan recommendations and morning briefings — useful for ex-employers or anywhere you're already in a process.
+      </div>
+      ${(() => {
+        const exCos = getExCompanies();
+        return `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+          ${exCos.map(c=>`
+            <div style="display:flex;align-items:center;gap:6px;background:var(--red-bg);border:1px solid #e8b4b4;border-radius:20px;padding:4px 10px">
+              <span style="font-size:13px;color:var(--red)">${h(c)}</span>
+              <button onclick="removeExCompany('${h(c)}')" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--red);line-height:1;padding:0">✕</button>
+            </div>`).join('')}
+          ${exCos.length === 0 ? '<span style="font-size:13px;color:var(--faint)">No companies excluded yet.</span>' : ''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="form-input" id="ex-co-input" placeholder="Company name…" style="max-width:240px"
+            onkeydown="if(event.key==='Enter')addExCompany()">
+          <button class="btn btn-secondary btn-sm" onclick="addExCompany()">+ Add</button>
+        </div>`;
+      })()}
+    </div>
+
     <!-- Launcher instructions -->
     <div class="setup-section">
       <details>
@@ -2450,6 +2517,33 @@ function renderSetupTab() {
     ` : ''}
 
     ${setupSubTab === 'import' ? `
+    <!-- Quick Start Mode -->
+    ${isSampleMode() || !localStorage.getItem(LS.last_import) ? `
+    <div class="setup-section" style="border:2px solid var(--purple);border-radius:var(--radius-lg);padding:16px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:22px">⚡</span>
+        <div>
+          <div class="setup-section-title" style="margin:0">Quick Start — no archive needed</div>
+          <div style="font-size:13px;color:var(--muted)">Add up to 10 contacts manually to get started immediately.</div>
+        </div>
+      </div>
+      ${quickStartContacts.length > 0 ? `
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Added contacts</div>
+          ${quickStartContacts.map((c,i)=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:var(--radius);margin-bottom:4px">
+              <span style="flex:1;font-size:13px"><strong>${h(c.name)}</strong> · ${h(c.role||'')} @ ${h(c.company)}</span>
+              <span class="badge badge-${c.grade.toLowerCase()}">${c.grade}</span>
+              <button onclick="quickStartContacts.splice(${i},1);renderSetupTab()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px">✕</button>
+            </div>`).join('')}
+          <button class="btn btn-primary" style="margin-top:8px" onclick="saveQuickStartContacts()">✓ Save & go to my network</button>
+        </div>` : ''}
+      <div style="background:var(--amber-bg);border:1px solid #e8c88a;border-radius:var(--radius);padding:8px 12px;font-size:12px;color:var(--amber);margin-bottom:12px">
+        ⚡ Quick Start mode — import your LinkedIn archive for full contact scoring and a complete network view.
+      </div>
+      ${renderQuickStartForm()}
+    </div>` : ''}
+
     <!-- Import archive -->
     <div class="setup-section">
       <div class="setup-section-title">Import your LinkedIn archive</div>
@@ -3141,6 +3235,7 @@ function renderContactsTab() {
       </div>
     `) : ''}
     ${renderActivityStrip()}
+    ${!isSampleMode() && state.contacts.length > 0 ? renderOutreachAnalytics() : ''}
     ${!isSampleMode() && state.contacts.length > 0 && state.TARGET_COS.length === 0 ? `
       <div class="banner banner-warning" style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
         <span style="flex:1">🎯 <strong>No target companies set.</strong> Add them in <a href="#" onclick="switchTab('setup'); setupSubTab='profile'; renderSetupTab(); return false" style="color:var(--amber);font-weight:600">Setup → Profile</a> to unlock the 🎯 filter and boost scoring for the right contacts.</span>
@@ -6016,6 +6111,8 @@ function loadState() {
     state.TARGET_COS = JSON.parse(raw).map(t => t.toLowerCase().trim()).filter(Boolean);
   } catch(e){ state.TARGET_COS = []; }
   try { state.COMPANY_INTEL = JSON.parse(localStorage.getItem(LS.company_intel) || '{}'); } catch(e){ state.COMPANY_INTEL = {}; }
+  try { state.COMPANY_INTELLIGENCE = JSON.parse(localStorage.getItem(LS.co_intelligence) || 'null') || null; } catch(e){ state.COMPANY_INTELLIGENCE = null; }
+  if (!state.COMPANY_INTELLIGENCE) { state.COMPANY_INTELLIGENCE = CI_SEED.map(c => ({...c})); }
   try { state.ACTIVITY_LOG  = JSON.parse(localStorage.getItem(LS.activity_log)  || '[]'); } catch(e){ state.ACTIVITY_LOG = []; }
   try { state.JOBS     = JSON.parse(localStorage.getItem(LS.jobs)     || '[]'); } catch(e){ state.JOBS = []; }
   try { state.OUTREACH = JSON.parse(localStorage.getItem(LS.outreach) || '[]'); } catch(e){ state.OUTREACH = []; }
@@ -7113,6 +7210,434 @@ async function tryMcpSync() {
   } catch(e) {
     // Network error, JSON parse error, etc. — fail silently
   }
+}
+
+// ─────────────────────────────────────────────────────
+// SECTION A · Company Intelligence Tab
+// ─────────────────────────────────────────────────────
+
+function getCIWeights() {
+  try { return Object.assign({}, CI_DEFAULT_WEIGHTS, JSON.parse(localStorage.getItem(LS.co_intel_weights) || '{}')); }
+  catch(e) { return {...CI_DEFAULT_WEIGHTS}; }
+}
+function saveCIWeights(w) { localStorage.setItem(LS.co_intel_weights, JSON.stringify(w)); }
+function saveCompanyIntelligence() {
+  try { localStorage.setItem(LS.co_intelligence, JSON.stringify(state.COMPANY_INTELLIGENCE)); } catch(e){}
+}
+
+function computeCompanyWarmth(companyName) {
+  const key = (companyName || '').toLowerCase();
+  const matches = state.contacts.filter(c => (c.company||'').toLowerCase().includes(key) || key.includes((c.company||'').toLowerCase().split(' ')[0]));
+  if (!matches.length) return 0;
+  const avg = matches.reduce((s,c) => s + (c.score||0), 0) / matches.length;
+  return Math.min(10, Math.round(avg / 10));
+}
+
+function computeCompositeScore(co, weights) {
+  const w = weights || getCIWeights();
+  const warmth = co.my_warmth_score || 0;
+  const score = (
+    (co.ai_investment_signal || 0) * w.ai_investment +
+    (co.hiring_momentum || 0)      * w.hiring_momentum +
+    (co.ecosystem_relevance || 0)  * w.ecosystem_relevance +
+    (co.india_presence || 0)       * w.india_presence +
+    warmth                         * w.warmth_score
+  ) / 100;
+  return Math.round(score * 10) / 10;
+}
+
+function refreshAllCIScores() {
+  const w = getCIWeights();
+  state.COMPANY_INTELLIGENCE.forEach(co => {
+    co.my_warmth_score = computeCompanyWarmth(co.name);
+    co.composite_score = computeCompositeScore(co, w);
+  });
+}
+
+function ciScoreClass(score) {
+  if (score >= 8) return 'ci-score-green';
+  if (score >= 6) return 'ci-score-amber';
+  return 'ci-score-grey';
+}
+
+function renderCompaniesTab() {
+  const el = document.getElementById('tab-companies');
+  if (!el) return;
+  refreshAllCIScores();
+  const w = getCIWeights();
+  const sorted = [...state.COMPANY_INTELLIGENCE].sort((a,b) => (b.composite_score||0) - (a.composite_score||0));
+  const totalW = Object.values(w).reduce((s,v)=>s+v,0);
+
+  const weightSliders = `
+    <div class="setup-section" style="padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-weight:700;font-size:14px">Scoring weights</div>
+        <span id="ci-weight-total" style="font-size:12px;font-weight:700;color:${totalW===100?'var(--teal)':'var(--red)'}">${totalW}% total ${totalW===100?'✓':'← must equal 100'}</span>
+      </div>
+      ${[
+        {key:'ai_investment',   label:'AI investment signal', val:w.ai_investment},
+        {key:'hiring_momentum', label:'Hiring momentum',      val:w.hiring_momentum},
+        {key:'ecosystem_relevance',label:'Ecosystem relevance',val:w.ecosystem_relevance},
+        {key:'india_presence',  label:'India presence',       val:w.india_presence},
+        {key:'warmth_score',    label:'My warmth score',      val:w.warmth_score},
+      ].map(s=>`
+        <div class="ci-weight-row">
+          <label class="ci-weight-label">${s.label}</label>
+          <input type="range" min="0" max="70" step="5" value="${s.val}"
+            id="ciw-${s.key}"
+            oninput="document.getElementById('ciwv-${s.key}').textContent=this.value+'%';updateCIWeightTotal()"
+            style="width:160px;accent-color:var(--purple)">
+          <span id="ciwv-${s.key}" class="ci-weight-val">${s.val}%</span>
+        </div>`).join('')}
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="applyCIWeights()">Apply weights</button>
+        <button class="btn btn-secondary btn-sm" onclick="resetCIWeights()">Reset</button>
+      </div>
+    </div>`;
+
+  const addForm = `
+    <div style="margin-bottom:16px">
+      <div class="add-form-toggle" onclick="toggleCIAddForm()">
+        <span>▶</span> <span id="ci-add-arrow"></span> + Add company
+      </div>
+      <div id="ci-add-form" style="display:none;padding:14px;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg)">
+        <div class="form-grid">
+          <div class="form-field"><label class="form-label">Company name</label><input class="form-input" id="ci-new-name" placeholder="e.g. Notion"></div>
+          <div class="form-field"><label class="form-label">Referral status</label>
+            <select class="form-select" id="ci-new-ref">${CI_REFERRAL_STATUSES.map(s=>`<option>${s}</option>`).join('')}</select></div>
+          ${['ai_investment_signal','hiring_momentum','ecosystem_relevance','india_presence'].map(k=>`
+          <div class="form-field"><label class="form-label">${k.replace(/_/g,' ')} (1–10)</label>
+            <input class="form-input" type="number" min="1" max="10" id="ci-new-${k}" value="5"></div>`).join('')}
+          <div class="form-field full"><label class="form-label">Notes</label><input class="form-input" id="ci-new-notes" placeholder="Optional notes…"></div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="addCICompany()">Add</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleCIAddForm()">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+
+  const cards = sorted.map(co => {
+    const sc = co.composite_score || 0;
+    const cls = ciScoreClass(sc);
+    const bars = [
+      {label:'AI investment',      val:co.ai_investment_signal||0},
+      {label:'Hiring momentum',    val:co.hiring_momentum||0},
+      {label:'Ecosystem relevance',val:co.ecosystem_relevance||0},
+      {label:'India presence',     val:co.india_presence||0},
+      {label:'My warmth',          val:co.my_warmth_score||0},
+    ];
+    const contactsHere = state.contacts.filter(c=>(c.company||'').toLowerCase().includes(co.id)).length;
+    return `<div class="ci-card">
+      <div class="ci-card-header">
+        <div class="ci-score-circle ${cls}">${sc.toFixed(1)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:15px">${h(co.name)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${contactsHere} contact${contactsHere!==1?'s':''} in network
+            ${co.last_refreshed?` · Refreshed ${new Date(co.last_refreshed).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`:' · Not yet scored by AI'}
+          </div>
+          <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <select style="font-size:11px;padding:2px 6px;border:1px solid var(--border2);border-radius:6px;background:var(--surface)"
+              onchange="setCIField('${co.id}','referral_status',this.value)">
+              ${CI_REFERRAL_STATUSES.map(s=>`<option${co.referral_status===s?' selected':''}>${s}</option>`).join('')}
+            </select>
+            <button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="refreshCICompany('${co.id}')">
+              <span id="ci-refresh-spinner-${co.id}"></span> ↻ AI Refresh
+            </button>
+            <button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--red)" onclick="deleteCICompany('${co.id}')">✕</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:0 16px 14px">
+        ${bars.map(b=>`
+          <div class="ci-bar-row">
+            <span class="ci-bar-label">${b.label}</span>
+            <div class="ci-bar-track"><div class="ci-bar-fill" style="width:${b.val*10}%"></div></div>
+            <span class="ci-bar-val">${b.val}</span>
+          </div>`).join('')}
+        <div style="margin-top:10px">
+          <input class="form-input" placeholder="Notes…" value="${h(co.notes||'')}" style="font-size:12px"
+            onchange="setCIField('${co.id}','notes',this.value)">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 style="font-size:18px;font-weight:700">Company Intelligence</h2>
+        <div style="font-size:13px;color:var(--muted)">Score &amp; rank target companies. <span style="color:var(--green);font-weight:600">■ 8–10</span> · <span style="color:var(--amber);font-weight:600">■ 6–7.9</span> · <span style="color:var(--faint);font-weight:600">■ &lt;6</span></div>
+      </div>
+    </div>
+    ${weightSliders}
+    ${addForm}
+    ${cards || '<div class="empty-state"><div class="empty-state-icon">🏢</div><div class="empty-state-title">No companies yet</div><div class="empty-state-sub">Add a company above to start tracking.</div></div>'}`;
+}
+
+function updateCIWeightTotal() {
+  const keys = ['ai_investment','hiring_momentum','ecosystem_relevance','india_presence','warmth_score'];
+  const total = keys.reduce((s,k) => s + parseInt(document.getElementById('ciw-'+k)?.value||0,10), 0);
+  const el = document.getElementById('ci-weight-total');
+  if (el) { el.textContent = `${total}% total ${total===100?'✓':'← must equal 100'}`; el.style.color = total===100?'var(--teal)':'var(--red)'; }
+}
+
+function applyCIWeights() {
+  const keys = ['ai_investment','hiring_momentum','ecosystem_relevance','india_presence','warmth_score'];
+  const total = keys.reduce((s,k)=>s+parseInt(document.getElementById('ciw-'+k)?.value||0,10),0);
+  if (total !== 100) { alert(`Weights must sum to 100% (currently ${total}%). Adjust and try again.`); return; }
+  const w = {};
+  keys.forEach(k => { w[k] = parseInt(document.getElementById('ciw-'+k).value, 10); });
+  saveCIWeights(w);
+  refreshAllCIScores();
+  saveCompanyIntelligence();
+  renderCompaniesTab();
+}
+
+function resetCIWeights() { localStorage.removeItem(LS.co_intel_weights); renderCompaniesTab(); }
+
+function setCIField(id, field, value) {
+  const co = state.COMPANY_INTELLIGENCE.find(c => c.id === id);
+  if (!co) return;
+  co[field] = value;
+  const w = getCIWeights();
+  co.my_warmth_score = computeCompanyWarmth(co.name);
+  co.composite_score = computeCompositeScore(co, w);
+  saveCompanyIntelligence();
+}
+
+function deleteCICompany(id) {
+  if (!confirm('Remove this company from your intelligence list?')) return;
+  state.COMPANY_INTELLIGENCE = state.COMPANY_INTELLIGENCE.filter(c => c.id !== id);
+  saveCompanyIntelligence();
+  renderCompaniesTab();
+}
+
+function toggleCIAddForm() {
+  const f = document.getElementById('ci-add-form');
+  if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function addCICompany() {
+  const name = (document.getElementById('ci-new-name')?.value || '').trim();
+  if (!name) { alert('Company name required.'); return; }
+  const id = name.toLowerCase().replace(/[^a-z0-9]/g,'');
+  if (state.COMPANY_INTELLIGENCE.find(c => c.id === id)) { alert('Company already in list.'); return; }
+  const getV = k => Math.max(1, Math.min(10, parseInt(document.getElementById('ci-new-'+k)?.value||5,10)));
+  const co = {
+    id, name,
+    ai_investment_signal:  getV('ai_investment_signal'),
+    hiring_momentum:       getV('hiring_momentum'),
+    ecosystem_relevance:   getV('ecosystem_relevance'),
+    india_presence:        getV('india_presence'),
+    my_warmth_score: computeCompanyWarmth(name),
+    composite_score: 0,
+    last_refreshed: null,
+    notes: document.getElementById('ci-new-notes')?.value || '',
+    open_roles: [],
+    referral_status: document.getElementById('ci-new-ref')?.value || 'None'
+  };
+  co.composite_score = computeCompositeScore(co, getCIWeights());
+  state.COMPANY_INTELLIGENCE.push(co);
+  saveCompanyIntelligence();
+  renderCompaniesTab();
+}
+
+async function refreshCICompany(id) {
+  const co = state.COMPANY_INTELLIGENCE.find(c => c.id === id);
+  if (!co) return;
+  const cfg = getAIConfig();
+  if (!cfg.apiKey && cfg.provider !== 'ollama') {
+    alert('Add an AI key in Setup → Settings to use AI Refresh.');
+    return;
+  }
+  const spinnerEl = document.getElementById(`ci-refresh-spinner-${id}`);
+  if (spinnerEl) spinnerEl.innerHTML = '<span class="spinner"></span> ';
+
+  const prompt = `You are a company intelligence analyst. Score ${co.name} on two dimensions for a product manager job seeker in India.
+
+Return ONLY valid JSON (no other text):
+{
+  "ai_investment_signal": <integer 1-10, how much is this company investing in AI products/features in 2025-2026>,
+  "hiring_momentum": <integer 1-10, how actively is this company hiring product managers right now>,
+  "ai_rationale": "<one sentence on AI investment>",
+  "hiring_rationale": "<one sentence on hiring momentum>"
+}`;
+
+  try {
+    const raw = await callAI(prompt, 300);
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('no json');
+    const result = JSON.parse(match[0]);
+    if (result.ai_investment_signal) co.ai_investment_signal = Math.max(1, Math.min(10, parseInt(result.ai_investment_signal)));
+    if (result.hiring_momentum) co.hiring_momentum = Math.max(1, Math.min(10, parseInt(result.hiring_momentum)));
+    const notes = [result.ai_rationale, result.hiring_rationale].filter(Boolean).join(' | ');
+    if (notes) co.notes = notes;
+    co.last_refreshed = new Date().toISOString();
+    co.my_warmth_score = computeCompanyWarmth(co.name);
+    co.composite_score = computeCompositeScore(co, getCIWeights());
+    saveCompanyIntelligence();
+    renderCompaniesTab();
+  } catch(e) {
+    if (spinnerEl) spinnerEl.innerHTML = '';
+    alert(`AI refresh failed: ${e.message}`);
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// SECTION B · Ex-Company Exclusion helpers
+// ─────────────────────────────────────────────────────
+
+function getExCompanies() {
+  try { return JSON.parse(localStorage.getItem(LS.ex_companies) || '[]'); } catch(e){ return []; }
+}
+function saveExCompanies(arr) {
+  localStorage.setItem(LS.ex_companies, JSON.stringify(arr.filter(Boolean)));
+  // Also save into profile so MCP server picks it up
+  state.profile.exCompanies = arr.join(', ');
+  saveProfile();
+}
+function addExCompany() {
+  const input = document.getElementById('ex-co-input');
+  const name = (input?.value||'').trim();
+  if (!name) return;
+  const arr = getExCompanies();
+  if (!arr.map(s=>s.toLowerCase()).includes(name.toLowerCase())) { arr.push(name); saveExCompanies(arr); }
+  if (input) input.value = '';
+  renderSetupTab();
+}
+function removeExCompany(name) {
+  const arr = getExCompanies().filter(c => c !== name);
+  saveExCompanies(arr);
+  renderSetupTab();
+}
+
+// ─────────────────────────────────────────────────────
+// SECTION C · Outreach Analytics helpers
+// ─────────────────────────────────────────────────────
+
+function getOutreachAnalytics() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  let sentThisMonth = 0, repliesA = 0, repliesB = 0, repliesC = 0;
+  let totalA = 0, totalB = 0, totalC = 0;
+  const replyDays = [];
+  const companyResponses = {};
+
+  state.contacts.forEach(c => {
+    const interactions = c._interactions || [];
+    const grade = c.grade || 'C';
+    interactions.forEach(intr => {
+      const d = new Date(intr.date || 0);
+      if (d >= monthStart) sentThisMonth++;
+      if (intr.response === 'replied' || intr.response === 'positive') {
+        if (grade === 'A') repliesA++;
+        else if (grade === 'B') repliesB++;
+        else repliesC++;
+        if (intr.replyDate) {
+          const days = Math.floor((new Date(intr.replyDate)-d)/86400000);
+          if (days >= 0) replyDays.push(days);
+        }
+        const co = c.company || 'Unknown';
+        companyResponses[co] = (companyResponses[co] || 0) + 1;
+      }
+      if (intr.type === 'linkedin' || intr.type === 'message') {
+        if (grade === 'A') totalA++;
+        else if (grade === 'B') totalB++;
+        else totalC++;
+      }
+    });
+  });
+
+  const rateA = totalA ? Math.round(repliesA/totalA*100) : 0;
+  const rateB = totalB ? Math.round(repliesB/totalB*100) : 0;
+  const rateC = totalC ? Math.round(repliesC/totalC*100) : 0;
+  const avgDays = replyDays.length ? Math.round(replyDays.reduce((s,d)=>s+d,0)/replyDays.length) : null;
+  const topCos = Object.entries(companyResponses).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+  return { sentThisMonth, rateA, rateB, rateC, totalA, totalB, totalC, avgDays, topCos };
+}
+
+function renderOutreachAnalytics() {
+  const a = getOutreachAnalytics();
+  return `
+    <details style="margin-bottom:16px">
+      <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
+        <span style="font-weight:600;font-size:14px">📊 Outreach analytics</span>
+        <span style="font-size:12px;color:var(--muted)">${a.sentThisMonth} messages this month · click to expand</span>
+      </summary>
+      <div style="padding:14px;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg)">
+        <div class="stats-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
+          <div class="stat-card"><div class="stat-num">${a.sentThisMonth}</div><div class="stat-label">Sent this month</div></div>
+          <div class="stat-card"><div class="stat-num">${a.avgDays !== null ? a.avgDays+'d' : '—'}</div><div class="stat-label">Avg days to reply</div></div>
+          <div class="stat-card"><div class="stat-num">${a.totalA+a.totalB+a.totalC}</div><div class="stat-label">Total outreach logged</div></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Response rate by grade</div>
+        ${[['A',a.rateA,a.totalA,'var(--teal)'],['B',a.rateB,a.totalB,'var(--amber)'],['C',a.rateC,a.totalC,'var(--faint)']].map(([g,r,t,col])=>`
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <span style="font-weight:700;color:${col};width:16px">Grade ${g}</span>
+            <div style="flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:${r}%;background:${col};border-radius:4px"></div>
+            </div>
+            <span style="font-size:13px;font-weight:600;width:40px">${r}%</span>
+            <span style="font-size:11px;color:var(--faint)">${t} sent</span>
+          </div>`).join('')}
+        ${a.topCos.length ? `
+          <div style="margin-top:12px;font-size:12px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Top companies by replies</div>
+          ${a.topCos.map(([co,n],i)=>`<div style="font-size:13px;padding:4px 0;border-bottom:1px solid var(--border)">${i+1}. <strong>${h(co)}</strong> — ${n} repl${n===1?'y':'ies'}</div>`).join('')}
+        ` : ''}
+      </div>
+    </details>`;
+}
+
+// ─────────────────────────────────────────────────────
+// SECTION D · Quick Start Mode
+// ─────────────────────────────────────────────────────
+
+let quickStartContacts = [];
+function renderQuickStartForm() {
+  if (quickStartContacts.length >= 10) return '<div style="color:var(--muted);font-size:13px">Maximum 10 contacts reached. Save to continue.</div>';
+  return `
+    <div class="form-grid" style="margin-bottom:10px">
+      <div class="form-field"><label class="form-label">Name *</label><input class="form-input" id="qs-name" placeholder="Full name"></div>
+      <div class="form-field"><label class="form-label">Company *</label><input class="form-input" id="qs-company" placeholder="Company"></div>
+      <div class="form-field"><label class="form-label">Role</label><input class="form-input" id="qs-role" placeholder="Job title"></div>
+      <div class="form-field"><label class="form-label">How you know them</label>
+        <select class="form-select" id="qs-rel">
+          <option>Worked together</option>
+          <option>Same company</option>
+          <option>Mutual connection</option>
+          <option>Met at event</option>
+          <option>Online only</option>
+        </select></div>
+      <div class="form-field"><label class="form-label">Last interaction</label><input class="form-input" type="date" id="qs-date"></div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="addQuickStartContact()">+ Add contact (${quickStartContacts.length}/10)</button>`;
+}
+
+function addQuickStartContact() {
+  const name = (document.getElementById('qs-name')?.value||'').trim();
+  const company = (document.getElementById('qs-company')?.value||'').trim();
+  if (!name || !company) { alert('Name and company are required.'); return; }
+  const rel = document.getElementById('qs-rel')?.value || 'Online only';
+  const role = document.getElementById('qs-role')?.value || '';
+  const lastDate = document.getElementById('qs-date')?.value || '';
+  const warmthMap = {'Worked together':'close-colleague','Same company':'colleague','Mutual connection':'known','Met at event':'known','Online only':'warm-unknown'};
+  const warmthTier = warmthMap[rel] || 'warm-unknown';
+  const scored = smartScore({name,company,position:role,connectedOn:lastDate,relationship:rel}, state);
+  quickStartContacts.push({name,company,position:role,role,relationship:rel,warmthTier:scored.warmthTier||warmthTier,grade:scored.grade||'B',score:scored.score||20,gradeReasons:scored.reasons||[rel],status:'Not contacted',connectedOn:lastDate,source:'quickstart',msgCount:0});
+  renderSetupTab();
+}
+
+function saveQuickStartContacts() {
+  if (!quickStartContacts.length) return;
+  clearSampleData();
+  state.contacts.unshift(...quickStartContacts);
+  saveContacts();
+  quickStartContacts = [];
+  localStorage.setItem(LS.onboarded,'1');
+  importBanner = {msg:`✅ ${state.contacts.length} contacts added. You're in Quick Start mode — import your LinkedIn archive for full scoring.`, type:'info'};
+  switchTab('contacts');
 }
 
 function init() {

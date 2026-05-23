@@ -29,15 +29,26 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.fastmcp.server import TransportSecuritySettings
+    # Disable DNS rebinding protection so ngrok proxy works
+    _TRANSPORT_SECURITY = TransportSecuritySettings(enable_dns_rebinding_protection=False)
+except ImportError:
+    _TRANSPORT_SECURITY = None
 
 # ─── Data loading ─────────────────────────────────────────────────────────────
 
 def _find_data_file() -> Path:
     """
-    Look for the WarmPath data file in the parent directory.
-    Accepts: warmpath_data.json  (preferred, rename your backup to this)
-          or warmpath-backup-*.json  (any backup file, picks the newest)
+    Look for the WarmPath data file.
+    Cloud (Railway): checks /data/warmpath_data.json first (persistent volume).
+    Local: checks parent directory for warmpath_data.json or warmpath-backup-*.json.
     """
+    # Cloud deployment: Railway mounts a persistent volume at /data
+    cloud_path = Path("/data/warmpath_data.json")
+    if cloud_path.exists():
+        return cloud_path
+
     parent = Path(__file__).parent.parent
 
     preferred = parent / "warmpath_data.json"
@@ -2005,13 +2016,316 @@ def send_outreach(name: str, context: str = "", confirm: bool = False) -> str:
     return "\n".join(lines)
 
 
+# ─── Upload endpoint (for cloud deployments) ──────────────────────────────────
+
+# ─── Section 6: Company Intelligence MCP tools ───────────────────────────────
+
+LS_CO_INTELLIGENCE = "wp_co_intelligence"
+LS_CO_INTEL_WEIGHTS = "wp_co_intel_weights"
+
+CI_DEFAULT_WEIGHTS = {
+    "ai_investment": 30,
+    "hiring_momentum": 25,
+    "ecosystem_relevance": 20,
+    "india_presence": 15,
+    "warmth_score": 10,
+}
+
+
+def _load_company_intelligence(data: dict) -> list[dict]:
+    """Load company intelligence from wp_co_intelligence key in warmpath_data."""
+    raw = data.get("wp_co_intelligence")
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except Exception:
+            raw = None
+    # Also check the full backup format where each LS key is a string
+    if raw is None:
+        raw = data.get(LS_CO_INTELLIGENCE)
+    if isinstance(raw, list):
+        return raw
+    return []
+
+
+def _get_ci_weights(data: dict) -> dict:
+    raw = data.get(LS_CO_INTEL_WEIGHTS)
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except Exception:
+            raw = {}
+    if isinstance(raw, dict):
+        w = {**CI_DEFAULT_WEIGHTS}
+        w.update({k: v for k, v in raw.items() if k in CI_DEFAULT_WEIGHTS})
+        return w
+    return {**CI_DEFAULT_WEIGHTS}
+
+
+def _compute_composite(co: dict, weights: dict, warmth: float = 0.0) -> float:
+    w = weights
+    score = (
+        (co.get("ai_investment_signal", 0)) * w["ai_investment"]
+        + (co.get("hiring_momentum", 0)) * w["hiring_momentum"]
+        + (co.get("ecosystem_relevance", 0)) * w["ecosystem_relevance"]
+        + (co.get("india_presence", 0)) * w["india_presence"]
+        + warmth * w["warmth_score"]
+    ) / 100
+    return round(score, 1)
+
+
+def _company_warmth_from_contacts(contacts: list, company_name: str) -> float:
+    key = company_name.lower()
+    matches = [c for c in contacts if key in (c.get("company") or "").lower() or (c.get("company") or "").lower() in key]
+    if not matches:
+        return 0.0
+    avg = sum(c.get("score", 0) for c in matches) / len(matches)
+    return round(min(10.0, avg / 10), 1)
+
+
+@mcp.tool()
+def list_target_companies(limit: int = 20) -> str:
+    """
+    List all companies in the Company Intelligence tracker, sorted by composite score (highest first).
+    Shows AI investment, hiring momentum, ecosystem relevance, India presence, warmth, and referral status.
+
+    Args:
+        limit: Max companies to return (default 20).
+    """
+    data = load_data()
+    cos = _load_company_intelligence(data)
+    if not cos:
+        return "No companies tracked yet. Add companies in WarmPath → Companies tab."
+
+    weights = _get_ci_weights(data)
+    contacts = data["contacts"]
+
+    rows = []
+    for co in cos:
+        warmth = _company_warmth_from_contacts(contacts, co.get("name", ""))
+        composite = _compute_composite(co, weights, warmth)
+        rows.append((composite, co, warmth))
+
+    rows.sort(key=lambda x: -x[0])
+
+    lines = ["# 🏢 Company Intelligence — ranked by composite score\n"]
+    for rank, (composite, co, warmth) in enumerate(rows[:limit], 1):
+        score_emoji = "🟢" if composite >= 8 else "🟡" if composite >= 6 else "⚪"
+        lines.append(
+            f"{rank}. {score_emoji} **{co.get('name')}** — composite {composite:.1f}  "
+            f"| Referral: {co.get('referral_status','None')}  "
+            f"| AI {co.get('ai_investment_signal','?')} · Hiring {co.get('hiring_momentum','?')} "
+            f"· Ecosystem {co.get('ecosystem_relevance','?')} · India {co.get('india_presence','?')} "
+            f"· Warmth {warmth}"
+        )
+        if co.get("notes"):
+            lines.append(f"   _{co['notes']}_")
+
+    lines.append(f"\n*{len(cos)} companies tracked · weights: AI {weights['ai_investment']}% · Hiring {weights['hiring_momentum']}% · Ecosystem {weights['ecosystem_relevance']}% · India {weights['india_presence']}% · Warmth {weights['warmth_score']}%*")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def get_company_intelligence(company: str) -> str:
+    """
+    Get the full intelligence profile for one company from the Companies tab.
+
+    Args:
+        company: Company name (partial match supported).
+    """
+    data = load_data()
+    cos = _load_company_intelligence(data)
+    if not cos:
+        return "No company intelligence data found. Add companies in WarmPath → Companies tab."
+
+    query = company.lower()
+    co = next((c for c in cos if query in c.get("name","").lower() or c.get("name","").lower() in query), None)
+    if not co:
+        names = ", ".join(c.get("name","") for c in cos)
+        return f'No company matching "{company}" found. Available: {names}'
+
+    weights = _get_ci_weights(data)
+    contacts = data["contacts"]
+    warmth = _company_warmth_from_contacts(contacts, co.get("name",""))
+    composite = _compute_composite(co, weights, warmth)
+    co_contacts = [c for c in contacts if (co.get("name","")).lower() in (c.get("company") or "").lower()]
+
+    lines = [
+        f"## 🏢 {co.get('name')} — composite score {composite:.1f}",
+        "",
+        f"| Signal | Score |",
+        f"|---|---|",
+        f"| AI investment | {co.get('ai_investment_signal','?')}/10 |",
+        f"| Hiring momentum | {co.get('hiring_momentum','?')}/10 |",
+        f"| Ecosystem relevance | {co.get('ecosystem_relevance','?')}/10 |",
+        f"| India presence | {co.get('india_presence','?')}/10 |",
+        f"| My warmth (auto) | {warmth}/10 |",
+        "",
+        f"**Referral status:** {co.get('referral_status','None')}",
+        f"**Last AI refresh:** {co.get('last_refreshed','Never')}",
+        f"**Notes:** {co.get('notes','') or '—'}",
+        "",
+        f"**Contacts in network ({len(co_contacts)}):**",
+    ]
+    for c in sorted(co_contacts, key=lambda x: -(x.get("score",0)))[:5]:
+        lines.append(f"  - {c.get('name')} · {c.get('role') or c.get('position','')} · Grade {c.get('grade','?')} · {c.get('status','Not contacted')}")
+
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def get_todays_company_priority() -> str:
+    """
+    Return the top 3 companies to focus on today from the Company Intelligence tracker.
+    Excludes companies where referral_status is 'Applied'.
+    Formatted for use in morning briefing.
+    """
+    data = load_data()
+    cos = _load_company_intelligence(data)
+    if not cos:
+        return "No company intelligence data. Add companies in WarmPath → Companies tab."
+
+    weights = _get_ci_weights(data)
+    contacts = data["contacts"]
+
+    eligible = [co for co in cos if co.get("referral_status","None") != "Applied"]
+    if not eligible:
+        return "All tracked companies are already in 'Applied' status — great progress!"
+
+    rows = []
+    for co in eligible:
+        warmth = _company_warmth_from_contacts(contacts, co.get("name",""))
+        composite = _compute_composite(co, weights, warmth)
+        rows.append((composite, co, warmth))
+
+    rows.sort(key=lambda x: -x[0])
+    top3 = rows[:3]
+
+    lines = ["## 🏢 Today's company priorities\n"]
+    for i, (composite, co, warmth) in enumerate(top3, 1):
+        score_emoji = "🟢" if composite >= 8 else "🟡" if composite >= 6 else "⚪"
+        co_contacts = [c for c in contacts if (co.get("name","")).lower() in (c.get("company") or "").lower()]
+        warm_contacts = [c for c in co_contacts if c.get("grade") in ("A","B")]
+        lines.append(f"{i}. {score_emoji} **{co.get('name')}** — {composite:.1f} pts · {co.get('referral_status','None')}")
+        lines.append(f"   {len(warm_contacts)} warm contact{'s' if len(warm_contacts)!=1 else ''} · AI {co.get('ai_investment_signal','?')} · Hiring {co.get('hiring_momentum','?')}")
+        if warm_contacts:
+            best = sorted(warm_contacts, key=lambda c: -(c.get("score",0)))[0]
+            lines.append(f"   → Best contact: **{best.get('name')}** · {best.get('role') or best.get('position','')} · {best.get('status','Not contacted')}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def update_company_score(company: str, field: str, value: int) -> str:
+    """
+    Update a specific score field for a company and recalculate its composite score.
+
+    Args:
+        company: Company name (partial match supported).
+        field:   One of: ai_investment_signal, hiring_momentum, ecosystem_relevance, india_presence (all 1–10).
+        value:   New score (1–10).
+    """
+    valid_fields = {"ai_investment_signal", "hiring_momentum", "ecosystem_relevance", "india_presence"}
+    if field not in valid_fields:
+        return f"Invalid field '{field}'. Must be one of: {', '.join(valid_fields)}"
+    if not (1 <= value <= 10):
+        return f"Value must be between 1 and 10 (got {value})."
+
+    data = load_data()
+    cos = _load_company_intelligence(data)
+    query = company.lower()
+    co = next((c for c in cos if query in c.get("name","").lower() or c.get("name","").lower() in query), None)
+    if not co:
+        return f'No company matching "{company}" found.'
+
+    old_val = co.get(field, "?")
+    co[field] = value
+
+    weights = _get_ci_weights(data)
+    contacts = data["contacts"]
+    warmth = _company_warmth_from_contacts(contacts, co.get("name",""))
+    co["my_warmth_score"] = warmth
+    new_composite = _compute_composite(co, weights, warmth)
+    co["composite_score"] = new_composite
+
+    # Save back to warmpath_data.json
+    data_file = Path(load_data.__code__.co_consts[0] if False else _find_data_file())  # type: ignore
+    try:
+        data_file = _find_data_file()
+        raw = json.loads(data_file.read_text())
+        raw[LS_CO_INTELLIGENCE] = json.dumps(cos)
+        data_file.write_text(json.dumps(raw, indent=2))
+    except Exception as e:
+        return f"Updated in memory but could not save to file: {e}"
+
+    return (
+        f"✅ **{co.get('name')}** — `{field}` updated {old_val} → {value}\n"
+        f"New composite score: **{new_composite:.1f}**\n"
+        f"_(Warmth auto-computed from {len([c for c in contacts if (co.get('name','').lower()) in (c.get('company') or '').lower()])} contacts at this company)_"
+    )
+
+
+def _make_upload_app(mcp_app, data_path: Path, token: str):
+    """Wrap the MCP Starlette app with an /upload endpoint and a status page."""
+    from starlette.applications import Starlette
+    from starlette.requests import Request
+    from starlette.responses import HTMLResponse, JSONResponse
+    from starlette.routing import Mount, Route
+
+    async def upload(request: Request):
+        # Token auth
+        auth = request.headers.get("X-Upload-Token", "")
+        if token and auth != token:
+            return JSONResponse({"error": "Unauthorized — set X-Upload-Token header"}, status_code=401)
+        try:
+            data = await request.json()
+            if "contacts" not in data:
+                return JSONResponse({"error": "Invalid WarmPath data (missing 'contacts')"}, status_code=400)
+            data_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(data_path, "w") as f:
+                json.dump(data, f, indent=2)
+            return JSONResponse({"ok": True, "contacts": len(data["contacts"])})
+        except Exception as e:
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+    async def status(request: Request):
+        try:
+            d = load_data()
+            n = len(d["contacts"])
+            body = f"<h2>✅ WarmPath MCP</h2><p>{n} contacts loaded.</p><p>MCP endpoint: <code>/mcp</code></p>"
+        except Exception as e:
+            body = f"<h2>⚠️ WarmPath MCP</h2><p>No data loaded yet: {e}</p>"
+        body += (
+            "<hr><h3>Upload your data</h3>"
+            "<pre>curl -X POST https://YOUR-URL/upload \\\n"
+            "  -H 'Content-Type: application/json' \\\n"
+            "  -H 'X-Upload-Token: YOUR_TOKEN' \\\n"
+            "  --data-binary @warmpath_data.json</pre>"
+        )
+        return HTMLResponse(f"<html><body style='font-family:sans-serif;max-width:600px;margin:40px auto'>{body}</body></html>")
+
+    app = Starlette(routes=[
+        Route("/upload", upload, methods=["POST"]),
+        Route("/", status, methods=["GET"]),
+        Mount("/", app=mcp_app),
+    ])
+    return app
+
+
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import sys
 
-    # Quick data check on startup so the user gets a clear error
-    # if the data file is missing, rather than a cryptic MCP error.
+    # Auto-detect cloud deployment: Railway / Render set PORT env var
+    cloud_port = int(os.environ.get("PORT", 0))
+    http_mode  = "--http" in sys.argv or cloud_port > 0
+    port       = cloud_port or 8765
+    host       = "0.0.0.0" if cloud_port else "127.0.0.1"
+    token      = os.environ.get("WARMPATH_TOKEN", "")
+
+    # Quick data check on startup (skip on cloud if no data yet — upload comes later)
     try:
         data = load_data()
         print(
@@ -2021,7 +2335,29 @@ if __name__ == "__main__":
             file=sys.stderr,
         )
     except FileNotFoundError as e:
-        print(str(e), file=sys.stderr)
-        sys.exit(1)
+        if not cloud_port:
+            print(str(e), file=sys.stderr)
+            sys.exit(1)
+        print(f"⚠️  No data file yet — upload via /upload endpoint. ({e})", file=sys.stderr)
 
-    mcp.run(transport="stdio")
+    if http_mode:
+        print(f"WarmPath MCP running in HTTP mode on {host}:{port}", file=sys.stderr)
+        if not cloud_port:
+            print(f"Expose via: ngrok http {port}", file=sys.stderr)
+
+        mcp.settings.host = host
+        mcp.settings.port = port
+        if _TRANSPORT_SECURITY is not None:
+            mcp.settings.transport_security = _TRANSPORT_SECURITY
+
+        if cloud_port:
+            # Cloud: wrap with /upload + status page, run via uvicorn directly
+            import uvicorn
+            starlette_app = mcp.get_asgi_app(transport="streamable-http")
+            data_path = Path("/data/warmpath_data.json") if cloud_port else Path(__file__).parent.parent / "warmpath_data.json"
+            app = _make_upload_app(starlette_app, data_path, token)
+            uvicorn.run(app, host=host, port=port)
+        else:
+            mcp.run(transport="streamable-http")
+    else:
+        mcp.run(transport="stdio")
