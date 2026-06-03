@@ -3234,7 +3234,6 @@ function renderContactsTab() {
         </div>
       </div>
     `) : ''}
-    ${renderActivityStrip()}
     ${!isSampleMode() && state.contacts.length > 0 ? renderOutreachAnalytics() : ''}
     ${!isSampleMode() && state.contacts.length > 0 && state.TARGET_COS.length === 0 ? `
       <div class="banner banner-warning" style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
@@ -3609,9 +3608,24 @@ function renderContactsByCompany(filtered) {
             <option value="on-hold" ${coStatus==='on-hold'?'selected':''}>⏸ On hold</option>
           </select>` : ''}
           ${company !== '(No company)' && !intel ? `<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="event.stopPropagation(); loadCompanyIntelForGroup('${safeCompany}', this)">Load intel</button>` : ''}
+          ${company !== '(No company)' ? `<button class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--muted)" onclick="event.stopPropagation(); toggleRenameCompanyBar('${safeCompany}')" title="Rename or merge this company">✎</button>` : ''}
           <span class="company-group-chevron ${isOpen ? 'open' : ''}">▶</span>
         </div>
       </div>
+      ${renamingCompany === company ? `
+      <div id="rename-bar-${safeCompany}" onclick="event.stopPropagation()" style="padding:10px 14px;border:1px solid var(--border);border-top:none;background:var(--purple-bg);display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <span style="font-size:12px;font-weight:600;color:var(--purple)">Rename:</span>
+        <input id="rename-co-input" class="form-input" style="font-size:12px;padding:4px 8px;width:220px;border-color:var(--purple)" value="${h(company)}" placeholder="New name…"
+          onkeydown="if(event.key==='Enter') applyRenameCompany('${safeCompany}')">
+        <button class="btn btn-primary btn-sm" style="font-size:11px" onclick="applyRenameCompany('${safeCompany}')">Rename all contacts</button>
+        <span style="font-size:12px;font-weight:600;color:var(--purple);margin-left:6px">Merge into:</span>
+        <select id="merge-co-select" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);max-width:220px">
+          <option value="">— pick company —</option>
+          ${[...new Set(state.contacts.map(c=>(c.company||'').trim()).filter(c=>c&&c!==company))].sort((a,b)=>a.localeCompare(b)).map(c=>`<option value="${h(c)}">${h(c)}</option>`).join('')}
+        </select>
+        <button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="applyMergeCompany('${safeCompany}')">Merge</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="closeRenameCompanyBar()">Cancel</button>
+      </div>` : ''}
       ${isOpen ? `
       ${jobMatchSection}
       <div class="company-group-contacts">
@@ -7560,13 +7574,46 @@ function getOutreachAnalytics() {
 
 function renderOutreachAnalytics() {
   const a = getOutreachAnalytics();
+  const tw = getActivityStats(0, 7);
+  const lw = getActivityStats(7, 7);
+  const trendSent = tw.sent - lw.sent;
+  const trendColor = trendSent > 0 ? 'var(--teal)' : trendSent < 0 ? 'var(--coral)' : 'var(--muted)';
+  const trendLabel = trendSent > 0 ? `↑${trendSent} vs last week` : trendSent < 0 ? `↓${Math.abs(trendSent)} vs last week` : '→ same as last week';
+  const allTimeSent = (state.ACTIVITY_LOG||[]).filter(e=>e.type==='message_sent').length;
+  const allTimeReplied = (state.ACTIVITY_LOG||[]).filter(e=>e.type==='response_received').length;
   return `
     <details style="margin-bottom:16px">
       <summary style="cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">
         <span style="font-weight:600;font-size:14px">📊 Outreach analytics</span>
-        <span style="font-size:12px;color:var(--muted)">${a.sentThisMonth} messages this month · click to expand</span>
+        <span style="font-size:12px;color:var(--muted)">${tw.sent} this week · ${a.sentThisMonth} this month · click to expand</span>
       </summary>
       <div style="padding:14px;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg)">
+        <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">This week</div>
+        <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:6px">
+          <div class="stat-card">
+            <div class="stat-num">${tw.sent}</div>
+            <div class="stat-label">Sent</div>
+            <div style="font-size:10px;color:var(--faint);margin-top:1px">${lw.sent} last week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" style="color:var(--teal)">${tw.responses}</div>
+            <div class="stat-label">Replies</div>
+            <div style="font-size:10px;color:var(--faint);margin-top:1px">${lw.responses} last week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" style="color:${tw.replyRate>=30?'var(--teal)':tw.replyRate>=15?'var(--amber)':'var(--coral)'}">${tw.replyRate}%</div>
+            <div class="stat-label">Reply rate</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" style="color:var(--purple)">${tw.resumes}</div>
+            <div class="stat-label">Resumes</div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--faint);margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+          <span style="color:${trendColor};font-weight:600">${trendLabel}</span>
+          ${allTimeSent > 0 ? `&nbsp;·&nbsp; All-time: <strong style="color:var(--text)">${allTimeSent}</strong> sent, <strong style="color:var(--teal)">${allTimeReplied}</strong> replied` : ''}
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">All outreach logged</div>
         <div class="stats-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
           <div class="stat-card"><div class="stat-num">${a.sentThisMonth}</div><div class="stat-label">Sent this month</div></div>
           <div class="stat-card"><div class="stat-num">${a.avgDays !== null ? a.avgDays+'d' : '—'}</div><div class="stat-label">Avg days to reply</div></div>
@@ -7638,6 +7685,55 @@ function saveQuickStartContacts() {
   localStorage.setItem(LS.onboarded,'1');
   importBanner = {msg:`✅ ${state.contacts.length} contacts added. You're in Quick Start mode — import your LinkedIn archive for full scoring.`, type:'info'};
   switchTab('contacts');
+}
+
+// ─────────────────────────────────────────────────────
+// SECTION E · Company Rename / Merge
+// ─────────────────────────────────────────────────────
+let renamingCompany = null;
+
+function toggleRenameCompanyBar(company) {
+  renamingCompany = renamingCompany === company ? null : company;
+  renderContactsList();
+  if (renamingCompany) {
+    requestAnimationFrame(() => {
+      const bar = document.getElementById('rename-bar-' + company.replace(/[^a-z0-9]/gi,'_'));
+      if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      document.getElementById('rename-co-input')?.focus();
+    });
+  }
+}
+
+function closeRenameCompanyBar() {
+  renamingCompany = null;
+  renderContactsList();
+}
+
+function applyRenameCompany(oldName) {
+  const input = document.getElementById('rename-co-input');
+  const newName = (input?.value || '').trim();
+  if (!newName) { alert('Enter a new company name.'); return; }
+  if (newName === oldName) { closeRenameCompanyBar(); return; }
+  const count = state.contacts.filter(c => (c.company || '') === oldName).length;
+  if (!confirm(`Rename "${oldName}" → "${newName}" for all ${count} contact${count!==1?'s':''}?`)) return;
+  state.contacts.forEach(c => { if ((c.company || '') === oldName) c.company = newName; });
+  saveContacts();
+  renamingCompany = null;
+  renderContactsList();
+  showBanner(`Renamed "${oldName}" → "${newName}" for ${count} contact${count!==1?'s':''}.`, 'success');
+}
+
+function applyMergeCompany(fromCompany) {
+  const sel = document.getElementById('merge-co-select');
+  const intoCompany = sel?.value;
+  if (!intoCompany) { alert('Select a company to merge into.'); return; }
+  const count = state.contacts.filter(c => (c.company || '') === fromCompany).length;
+  if (!confirm(`Move all ${count} contact${count!==1?'s':''} from "${fromCompany}" into "${intoCompany}"? This cannot be undone.`)) return;
+  state.contacts.forEach(c => { if ((c.company || '') === fromCompany) c.company = intoCompany; });
+  saveContacts();
+  renamingCompany = null;
+  renderContactsList();
+  showBanner(`Merged "${fromCompany}" into "${intoCompany}" (${count} contact${count!==1?'s':''} moved).`, 'success');
 }
 
 function init() {
