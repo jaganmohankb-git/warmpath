@@ -57,6 +57,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
         super().do_GET()
 
+    def end_headers(self):
+        # Always serve fresh — no browser caching of index.html
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        super().end_headers()
+
     def log_message(self, format, *args):
         pass  # suppress request logs
 
