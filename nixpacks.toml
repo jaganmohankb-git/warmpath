@@ -1,0 +1,7 @@
+providers = ["python"]
+
+[phases.install]
+cmds = ["pip install -r mcp-server/requirements.txt"]
+
+[start]
+cmd = "python mcp-server/server.py"
